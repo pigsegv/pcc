@@ -1,7 +1,7 @@
 OBJ := $(OBJ)/src
 
-CFLAGS += -Wall -Wextra -ggdb3 -O0
-LDFLAGS += 
+CFLAGS += -Wall -Wextra -ggdb3 -O3 -fsanitize=address
+LDFLAGS += -fsanitize=address
 
 SRCS := $(shell find -type f -name "*.cpp" -printf "%P\n")
 OBJS := $(patsubst %.cpp, $(OBJ)/%.o, $(SRCS))
@@ -11,9 +11,9 @@ ifeq ($(GENERATE_ASM), 1)
 	ASMS := $(patsubst %.cpp, $(OBJ)/%.s, $(SRCS))
 endif
 
-all: $(BIN)/compiler $(ASMS)
+all: $(BIN)/pcc $(ASMS)
 
-$(BIN)/compiler: $(OBJS) 
+$(BIN)/pcc: $(OBJS) 
 	@$(LD) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 	@echo built $@
 

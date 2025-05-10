@@ -28,7 +28,7 @@ CFLAGS := -I$(SRC) -I$(INCLUDE) -I$(ROOT_PATH) -isystem $(EXTERNAL_DIR)
 ASMFLAGS :=
 LDFLAGS := -Wl,-rpath=$(BIN) -L$(BIN)
 
-GENERATE_ASM := 1
+GENERATE_ASM := 0
 
 export PLATFORM CC LD SRC OBJ BIN INCLUDE EXTERNAL_DIR EXTERNAL_LIBS_DIR CFLAGS LDFLAGS GENERATE_ASM ASMFLAGS AS
 
@@ -38,7 +38,7 @@ OBJ_DIRS := $(call relative_foreach, $(patsubst %, $(OBJ)/%, $(call relative_for
 
 CREATE_DIR_COMMAND := ./scripts/dirs.sh
 
-PROJECTS := compiler
+PROJECTS := pcc
 
 .PHONY: all dirs clean external run qemu $(PROJECTS) test
 
@@ -51,7 +51,7 @@ create_dirs: dirs
 
 # ---------------------- PROJECTS ----------------------
 
-compiler:
+pcc:
 	@$(MAKE) -C $(ROOT_PATH)/src
 
 # ---------------------- UTILITY ----------------------

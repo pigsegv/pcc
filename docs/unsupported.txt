@@ -1,0 +1,3 @@
+1. Ansi escape codes (I only support the basic ones like \n or \t).
+2. Trigrapsh (Who even uses these?)
+3. 
