@@ -3,46 +3,49 @@
 #ifndef PCC_LEXER_H
 #define PCC_LEXER_H
 
+#include "arena.hpp"
+
 #include <string>
 #include <cstdint>
 
-namespace pcc::lexer {
+namespace pcc {
 
 enum tok_type {
   /*
    * Enums by Sean Barrett.
    * https://github.com/nothings/stb/blob/master/stb_c_lexer.h
    */
-   PARSE_ERROR,
-   NONE,
-   INTLIT,
-   FLOATLIT,
-   ID,
-   DQSTRING,
-   SQSTRING,
-   CHARLIT,
-   EQ,
-   NOTEQ,
-   LESSEQ,
-   GREATEREQ,
-   ANDAND,
-   OROR,
-   SHL,
-   SHR,
-   PLUSPLUS,
-   MINUSMINUS,
-   PLUSEQ,
-   MINUSEQ,
-   MULEQ,
-   DIVEQ,
-   MODEQ,
-   ANDEQ,
-   OREQ,
-   XOREQ,
-   ARROW,
-   EQARROW,
-   SHLEQ, 
-   SHREQ,
+  PARSE_ERROR,
+  NONE,
+  INTLIT,
+  FLOATLIT,
+  ID,
+  DQSTRING,
+  SQSTRING,
+  OPERATOR, // single character operators
+  EQ,
+  NOTEQ,
+  LESSEQ,
+  GREATEREQ,
+  ANDAND,
+  OROR,
+  SHL,
+  SHR,
+  PLUSPLUS,
+  MINUSMINUS,
+  PLUSEQ,
+  MINUSEQ,
+  MULEQ,
+  DIVEQ,
+  MODEQ,
+  ANDEQ,
+  OREQ,
+  XOREQ,
+  ARROW,
+  EQARROW,
+  SHLEQ, 
+  SHREQ,
+  ELIPSES,
 };
 
 struct string_view {
@@ -52,22 +55,27 @@ struct string_view {
 
 struct token {
   enum tok_type type;
+  const char *location;
   union {
     struct string_view str;
     uint64_t intlit; 
-    char charlit;
+    char op;
   };
 };
 
 class lexer {
 public:
   lexer(const char *src);
-  ~lexer();
+  ~lexer(void);
 
-  struct token get_tok(const char **end);
+  struct token get_tok(void);
 
 private:
   const char *m_src;
+  const char *m_cursor;
+
+  class arena m_scratch;
+  class arena m_strings;
 };
 
 };

@@ -1,5 +1,8 @@
+#include "lexer.hpp"
 #define UTIL_FILE_IO_IMPLEMENTATION
 #include "file-io.hpp"
+#include "arena.hpp"
+#include "dynamic-array.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -19,6 +22,9 @@ int main(int argc, char **argv) {
   }
 
   std::cout << contents;
+
+  class pcc::lexer lexer(contents);
+  lexer.get_tok();
 
   delete[] contents;
   return 0;

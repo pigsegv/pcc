@@ -1,6 +1,7 @@
 OBJ := $(OBJ)/src
 
-CFLAGS += -Wall -Wextra -ggdb3 -O3 -fsanitize=address
+CFLAGS += -std=c++20 -Wall -Wextra -ggdb3 -O3 -fsanitize=address -pedantic
+CFLAGS += -Wno-missing-field-initializers
 LDFLAGS += -fsanitize=address
 
 SRCS := $(shell find -type f -name "*.cpp" -printf "%P\n")

@@ -4,15 +4,12 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cassert>
+#include <cstdint>
 #include <new>
 
 #define ARENA_DEF_BLOCK_SIZE 4096
 
-#define arena_save(arena, r)
-#define arena_restore(arena, r)
-
 namespace pcc {
-typedef size_t save_state;
 
 class arena {
 public:
@@ -23,8 +20,13 @@ public:
   T *alloc(size_t size);
 
   char &operator [](size_t index);
-  save_state save(void);
-  void restore(save_state state);
+  size_t save(void);
+  void restore(size_t state);
+
+  size_t get_block_size(void);
+
+private:
+  class arena *get_node(uint64_t node);
 
 private:
   size_t m_allocated;
@@ -36,19 +38,34 @@ private:
   char *m_data;
 };
 
+template <class T>
+class arena_allocator {
+public:
+  arena_allocator(void) noexcept;
+
+private:
+  class arena arena;
+};
+
 
 template <typename T>
 T *arena::alloc(size_t size) {
+  if (size > m_capacity) return nullptr;
+
   if (m_allocated + size > m_capacity) {
     if (m_next == nullptr) {
       m_next = new (m_block) arena(m_capacity);
     }
 
-    return m_next->alloc<T>(size);
-  }
+    m_allocated = m_capacity; // Mark this node as 'full'
 
-  m_allocated += size;
-  return m_data + m_allocated;
+    return m_next->alloc<T>(size);
+
+  } else {
+    T *block = (T *)(m_data + m_allocated);
+    m_allocated += size;
+    return block;
+  }
 }
 
 }
