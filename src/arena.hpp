@@ -38,16 +38,6 @@ private:
   char *m_data;
 };
 
-template <class T>
-class arena_allocator {
-public:
-  arena_allocator(void) noexcept;
-
-private:
-  class arena arena;
-};
-
-
 template <typename T>
 T *arena::alloc(size_t size) {
   if (size > m_capacity) return nullptr;

@@ -488,4 +488,4 @@ lexer::~lexer(void) {
   m_src = nullptr;
 }
 
-};
+}
