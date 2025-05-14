@@ -15,6 +15,7 @@ enum tok_type {
    * Enums by Sean Barrett.
    * https://github.com/nothings/stb/blob/master/stb_c_lexer.h
    */
+  END_OF_FILE,
   PARSE_ERROR,
   NONE,
   INTLIT,
@@ -22,7 +23,7 @@ enum tok_type {
   ID,
   DQSTRING,
   SQSTRING,
-  OPERATOR, // single character operators
+  CHARLIT, // single character operators
   EQ,
   NOTEQ,
   LESSEQ,
@@ -45,6 +46,7 @@ enum tok_type {
   EQARROW,
   SHLEQ, 
   SHREQ,
+  POUNDPOUND,
   ELIPSES,
 };
 
@@ -59,7 +61,7 @@ struct token {
   union {
     struct string_view str;
     uint64_t intlit; 
-    char op;
+    char charlit;
   };
 };
 

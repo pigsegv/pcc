@@ -39,8 +39,9 @@ char resolve_esc(char c) {
 
 static struct string_view get_string(const char *start, char q, 
                                      class arena *scratch, 
-                                     class arena *strings) {
-  if (q != '\'' || q != '"') {
+                                     class arena *strings,
+                                     const char **end) {
+  if (q != '\'' && q != '"') {
     assert(0 && "Unreachable");
   }
 
@@ -71,6 +72,8 @@ static struct string_view get_string(const char *start, char q,
         }
 
         sv.view = tmp;
+
+        if (end != nullptr) *end = start + 1;
 
         return sv;
 
@@ -121,8 +124,30 @@ static const char *skip_comment(const char *start, char style) {
 }
 
 static struct string_view get_id(const char *start, class arena *scratch,
-                                 class arena *strings) {
-  struct string_view sv;
+                                 class arena *strings, const char **end) {
+  struct string_view sv = { };
+  struct dynamic_array<char> scratch_da(scratch);
+
+  while (*start) {
+    if (*start != '_' && !std::isalpha(*start) && !std::isdigit(*start)){
+      char *tmp = strings->alloc<char>(scratch_da.count);
+      for (uint64_t i = 0; i < scratch_da.count; i++) {
+        tmp[i] = scratch_da[i];
+      }
+
+      sv.view = tmp;
+      sv.len = scratch_da.count;
+
+      if (end != nullptr) *end = start;
+
+      return sv;
+    }
+
+    scratch_da.append(*start);
+
+    start++;
+  }
+
   return sv;
 }
 
@@ -147,8 +172,8 @@ struct token lexer::get_tok(void) {
             
 
           default: 
-            tok.type = OPERATOR; 
-            tok.op = '/';
+            tok.type = CHARLIT; 
+            tok.charlit = '/';
             m_cursor = tmp + 1;
         }
 
@@ -163,8 +188,8 @@ struct token lexer::get_tok(void) {
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '*';
+            tok.type = CHARLIT;
+            tok.charlit = '*';
             m_cursor = tmp + 1;
         }
 
@@ -175,18 +200,18 @@ struct token lexer::get_tok(void) {
         switch (*(tmp + 1)) {
           case '+': 
             tok.type = PLUSPLUS;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '=': 
             tok.type = PLUSEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default:
-            tok.type = OPERATOR;
-            tok.op = '+';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '+';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -196,23 +221,23 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '-': 
             tok.type = MINUSMINUS;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '=': 
             tok.type = MINUSEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '>': 
             tok.type = ARROW;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '-';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '-';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -222,14 +247,14 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = EQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '=';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '=';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -239,13 +264,13 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = NOTEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '!';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '!';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -255,24 +280,24 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = LESSEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '<': {
             if (*(tmp + 2) == '=') {
               tok.type = SHLEQ;
-              m_cursor += 3;
+              m_cursor = tmp + 3;
             } else {
               tok.type = SHL;
-              m_cursor += 2;
+              m_cursor = tmp + 2;
             }
 
           } break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '<';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '<';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -282,24 +307,24 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = GREATEREQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '>': {
             if (*(tmp + 2) == '=') {
               tok.type = SHREQ;
-              m_cursor += 3;
+              m_cursor = tmp + 3;
             } else {
               tok.type = SHR;
-              m_cursor += 2;
+              m_cursor = tmp + 2;
             }
 
           } break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '>';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '>';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -309,13 +334,13 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = MODEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '%';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '%';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -325,18 +350,18 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '&': 
             tok.type = ANDAND;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '=': 
             tok.type = ANDEQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '&';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '&';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -346,18 +371,18 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '|': 
             tok.type = OROR;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           case '=': 
             tok.type = OREQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '|';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '|';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -367,13 +392,13 @@ struct token lexer::get_tok(void) {
         switch(*(tmp + 1)) {
           case '=': 
             tok.type = XOREQ;
-            m_cursor += 2;
+            m_cursor = tmp + 2;
             break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '^';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '^';
+            m_cursor = tmp + 1;
         }
 
         return tok;
@@ -384,39 +409,66 @@ struct token lexer::get_tok(void) {
           case '.': {
             if (*(tmp + 2) == '.') {
               tok.type = ELIPSES;
-              m_cursor += 3;
+              m_cursor = tmp + 3;
             } 
 
           } break;
 
           default: 
-            tok.type = OPERATOR;
-            tok.op = '.';
-            m_cursor += 1;
+            tok.type = CHARLIT;
+            tok.charlit = '.';
+            m_cursor = tmp + 1;
         }
 
         return tok;
       }
 
+      case '#': {
+        switch(*(tmp + 1)) {
+          case '#': 
+            tok.type = POUNDPOUND;
+            m_cursor = tmp + 2;
+            break;
+
+          default: 
+            tok.type = CHARLIT;
+            tok.charlit = '#';
+            m_cursor = tmp + 1;
+        }
+
+        return tok;
+      }
+
+      case ';': case '(': case ')': 
+      case '{': case '}': case '[': case ']': 
+      case '\\': case ',': case '?': case ':':
+      case '\n': case '~':
+        tok.type = CHARLIT;
+        tok.charlit = *tmp;
+        m_cursor = tmp + 1;
+        return tok;
+
       case '"': case '\'': {
         if (*tmp == '"') tok.type = DQSTRING;
         else             tok.type = SQSTRING;
 
-        tok.str = get_string(tmp + 1, *tmp, &m_scratch, &m_strings);
-        m_cursor += tok.str.len + 2;
+        tok.str = get_string(tmp + 1, *tmp, &m_scratch, &m_strings, &m_cursor);
 
         return tok;
       }
     }
 
     if (*tmp == '_' || std::isalpha(*tmp)) {
-      tok.str = get_id(tmp, &m_scratch, &m_strings);
+      tok.type = ID;
+      tok.str = get_id(tmp, &m_scratch, &m_strings, &m_cursor);
+      return tok;
     }
 
     tmp++;
   }
+  m_cursor = tmp;
 
-  tok.type = PARSE_ERROR;
+  tok.type = END_OF_FILE;
   return tok;
 }
 
@@ -433,7 +485,7 @@ lexer::lexer(const char *src) : m_scratch(), m_strings() {
 
 lexer::~lexer(void) {
   delete[] m_src;
-  m_src = NULL;
+  m_src = nullptr;
 }
 
 };
