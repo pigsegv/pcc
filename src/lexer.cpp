@@ -1,9 +1,11 @@
 #include "lexer.hpp"
 #include "arena.hpp"
 #include "dynamic-array.hpp"
+#include "error.hpp"
 
 #include <cstring>
 #include <cctype>
+#include <utility>
 
 namespace pcc {
 char resolve_esc(char c) {
@@ -78,7 +80,8 @@ static struct string_view get_string(const char *start, char q,
         return sv;
 
       } else if (*start == '\n') {
-          return { nullptr, 0 }; // Parse error
+        if (end != nullptr) *end = start + 1;
+        return { nullptr, 0 }; // Parse error
 
       } else {
         scratch_da.append(*start);
@@ -125,11 +128,16 @@ static const char *skip_comment(const char *start, char style) {
 
 static struct string_view get_id(const char *start, class arena *scratch,
                                  class arena *strings, const char **end) {
-  struct string_view sv = { };
+  struct string_view sv = { .view = nullptr };
   struct dynamic_array<char> scratch_da(scratch);
 
   while (*start) {
-    if (*start != '_' && !std::isalpha(*start) && !std::isdigit(*start)){
+    if (*start != '_' && !std::isalpha(*start) && !std::isdigit(*start)) {
+      if (scratch_da.count == 0) {
+        if (end != nullptr) *end = start;
+        return sv;
+      }
+
       char *tmp = strings->alloc<char>(scratch_da.count);
       for (uint64_t i = 0; i < scratch_da.count; i++) {
         tmp[i] = scratch_da[i];
@@ -149,6 +157,38 @@ static struct string_view get_id(const char *start, class arena *scratch,
   }
 
   return sv;
+}
+
+static void get_number(struct token *token, const char *start, 
+                       class arena *scratch, class arena *strings,
+                       const char **end) {
+  char *int_end, *float_end;
+
+  uint64_t int_rep = std::strtoull(start, &int_end, 0);
+  long double float_rep = std::strtold(start, &float_end);
+  (void)float_rep;
+
+  if (float_end > int_end) {
+    token->type = FLOATLIT;
+
+    {
+      char *tmp = strings->alloc<char>((ptrdiff_t)(float_end - start));
+      std::memcpy(tmp, start, (ptrdiff_t)(float_end - start));
+      token->number.float_lit.view = tmp;
+      token->number.float_lit.len = (ptrdiff_t)(float_end - start);
+    }
+    
+    token->number.suff = get_id(float_end, scratch, strings, end);
+
+    return;
+  } else {
+    token->type = INTLIT;
+
+    token->number.intlit = int_rep;
+    token->number.suff = get_id(float_end, scratch, strings, end);
+
+    return;
+  }
 }
 
 struct token lexer::get_tok(void) {
@@ -453,6 +493,14 @@ struct token lexer::get_tok(void) {
         else             tok.type = SQSTRING;
 
         tok.str = get_string(tmp + 1, *tmp, &m_scratch, &m_strings, &m_cursor);
+        if (tok.str.view == nullptr) {
+          report_error(m_filepath, m_src, tok.location, 
+                       "Expected closing '\"'");
+          return {
+            .type = PARSE_ERROR,
+            .location = tok.location,
+          };
+        }
 
         return tok;
       }
@@ -464,6 +512,11 @@ struct token lexer::get_tok(void) {
       return tok;
     }
 
+    if (std::isdigit(*tmp)) {
+      get_number(&tok, tmp, &m_scratch, &m_strings, &m_cursor);
+      return tok;
+    }
+
     tmp++;
   }
   m_cursor = tmp;
@@ -472,12 +525,52 @@ struct token lexer::get_tok(void) {
   return tok;
 }
 
-lexer::lexer(const char *src) : m_scratch(), m_strings() {
+class lexer &lexer::operator =(class lexer &that) {
+  if (&that == this) {
+    return *this;
+  }
+
+  delete[] m_src;
+  delete[] m_filepath;
+  m_scratch.reset();
+  m_strings.reset();
+
+  char *tmp;
+
+  tmp = new char[std::strlen(that.m_filepath) + 1];
+  std::strcpy(tmp, that.m_filepath);
+  m_filepath = tmp;
+
+  tmp = new char[std::strlen(that.m_src) + 1];
+  std::strcpy(tmp, that.m_src);
+  m_src = that.m_src;
+
+  m_cursor = m_src; 
+
+  return *this;
+}
+
+class lexer &lexer::operator =(class lexer &&that) {
+  m_scratch.reset();
+  m_strings.reset();
+
+  std::swap(m_filepath, that.m_filepath);
+  std::swap(m_src, that.m_src);
+  m_cursor = m_src;
+
+
+  return *this;
+}
+
+lexer::lexer(const char *src, const char *filepath) : m_scratch(), m_strings() {
   size_t len = std::strlen(src);
 
   char *tmp = new char[len + 1];
   std::memcpy(tmp, src, len);
   tmp[len] = 0;
+
+  m_filepath = new char[std::strlen(filepath) + 1];
+  std::strcpy(m_filepath, filepath);
 
   m_src = tmp;
   m_cursor = m_src;
@@ -485,6 +578,7 @@ lexer::lexer(const char *src) : m_scratch(), m_strings() {
 
 lexer::~lexer(void) {
   delete[] m_src;
+  delete[] m_filepath;
   m_src = nullptr;
 }
 

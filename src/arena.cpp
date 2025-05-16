@@ -1,6 +1,6 @@
 #include "arena.hpp"
 
-#include <cstdint>
+#include <stdint.h>
 #include <cstdio>
 #include <cstdlib>
 
@@ -37,6 +37,10 @@ void arena::restore(uint64_t state) {
   }
 
   a->m_allocated = offset;
+}
+
+void arena::reset(void) {
+  restore(0);
 }
 
 class arena *arena::get_node(uint64_t node) {

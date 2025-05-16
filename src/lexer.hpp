@@ -6,7 +6,7 @@
 #include "arena.hpp"
 
 #include <string>
-#include <cstdint>
+#include <stdint.h>
 
 namespace pcc {
 
@@ -17,12 +17,17 @@ enum tok_type {
    */
   END_OF_FILE,
   PARSE_ERROR,
+
   NONE,
+
   INTLIT,
   FLOATLIT,
+
   ID,
+
   DQSTRING,
   SQSTRING,
+
   CHARLIT, // single character operators
   EQ,
   NOTEQ,
@@ -55,24 +60,38 @@ struct string_view {
   uint64_t len;
 };
 
+struct number {
+  union {
+    uint64_t intlit;
+    struct string_view float_lit;
+  };
+
+  struct string_view suff;
+};
+
 struct token {
   enum tok_type type;
   const char *location;
   union {
     struct string_view str;
-    uint64_t intlit; 
+    struct number number;
     char charlit;
   };
 };
 
 class lexer {
 public:
-  lexer(const char *src);
+  lexer(const char *src, const char *filepath);
   ~lexer(void);
+
+  class lexer &operator =(class lexer &);
+  class lexer &operator =(class lexer &&);
 
   struct token get_tok(void);
 
 private:
+  char *m_filepath;
+
   const char *m_src;
   const char *m_cursor;
 

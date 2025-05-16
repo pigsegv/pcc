@@ -1,8 +1,8 @@
 OBJ := $(OBJ)/src
 
 CFLAGS += -std=c++20 -Wall -Wextra -ggdb3 -O3 -fsanitize=address -pedantic
-CFLAGS += -Wno-missing-field-initializers
-LDFLAGS += -fsanitize=address
+CFLAGS += -Wno-missing-field-initializers -fno-exceptions
+LDFLAGS += -fsanitize=address -flto
 
 SRCS := $(shell find -type f -name "*.cpp" -printf "%P\n")
 OBJS := $(patsubst %.cpp, $(OBJ)/%.o, $(SRCS))

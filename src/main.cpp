@@ -23,12 +23,16 @@ int main(int argc, char **argv) {
 
   std::cout << contents;
 
-  class pcc::lexer lexer(contents);
+  class pcc::lexer lexer(contents, argv[1]);
+  lexer = lexer;
+
   for (struct pcc::token tok = lexer.get_tok(); 
       tok.type != pcc::END_OF_FILE;
       tok = lexer.get_tok()) {
     printf("--------------------------------\n");
     switch (tok.type) {
+      case pcc::PARSE_ERROR:
+        continue;
       case pcc::DQSTRING: case pcc::SQSTRING:
         printf("str = \"%.*s\"\n", (int)tok.str.len, tok.str.view);
         break;
@@ -110,6 +114,17 @@ int main(int argc, char **argv) {
 
       case pcc::ID:
         printf("id = %.*s\n", (int)tok.str.len, tok.str.view);
+        break;
+
+      case pcc::INTLIT:
+        printf("intlit = %lu%.*s\n", tok.number.intlit,
+                (int)tok.number.suff.len, tok.number.suff.view);
+        break;
+
+      case pcc::FLOATLIT:
+        printf("floatlit = %.*s%.*s\n", (int)tok.number.float_lit.len,
+                tok.number.float_lit.view, (int)tok.number.suff.len,
+                tok.number.suff.view);
         break;
         
       default:

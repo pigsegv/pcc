@@ -1,11 +1,11 @@
 #ifndef UTIL_ARENA_H
 #define UTIL_ARENA_H
 
-#include <cstddef>
-#include <cstdlib>
-#include <cassert>
-#include <cstdint>
 #include <new>
+#include <cstdlib>
+#include <stddef.h>
+#include <assert.h>
+#include <stdint.h>
 
 #define ARENA_DEF_BLOCK_SIZE 4096
 
@@ -22,6 +22,7 @@ public:
   char &operator [](size_t index);
   size_t save(void);
   void restore(size_t state);
+  void reset(void);
 
   size_t get_block_size(void);
 
