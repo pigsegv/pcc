@@ -185,7 +185,7 @@ static void get_number(struct token *token, const char *start,
     token->type = INTLIT;
 
     token->number.intlit = int_rep;
-    token->number.suff = get_id(float_end, scratch, strings, end);
+    token->number.suff = get_id(int_end, scratch, strings, end);
 
     return;
   }
