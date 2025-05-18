@@ -4,8 +4,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace pcc {
-
 size_t arena::get_block_size(void) {
   return m_capacity;
 }
@@ -31,7 +29,7 @@ void arena::restore(uint64_t state) {
   class arena *a = get_node(node);
   
   class arena *tmp = a->m_next;
-  while (tmp != nullptr) {
+  while (tmp != nullptr) { // TODO: Don't traverse the entire list
     tmp->m_allocated = 0;
     tmp = tmp->m_next;
   }
@@ -85,6 +83,4 @@ arena::~arena(void) {
   m_data = nullptr;
 
   m_allocated = 0;
-}
-
 }

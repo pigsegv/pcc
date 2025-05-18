@@ -9,8 +9,6 @@
 
 #define ARENA_DEF_BLOCK_SIZE 4096
 
-namespace pcc {
-
 class arena {
 public:
   arena(size_t block_size = ARENA_DEF_BLOCK_SIZE);
@@ -58,8 +56,5 @@ T *arena::alloc(size_t size) {
     return block;
   }
 }
-
-}
-
 
 #endif // UTIL_ARENA_H

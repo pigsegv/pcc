@@ -7,8 +7,6 @@
 #include <cassert>
 #include <iostream>
 
-namespace pcc {
-
 #define DA_INIT_CAPACITY 256
 #define DA_GROW_FACTOR 1.5
 
@@ -59,7 +57,5 @@ private:
   class arena *m_arena;
   uint64_t m_arena_save;
 };
-
-}
 
 #endif // PCC_DA_H

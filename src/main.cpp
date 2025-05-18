@@ -23,105 +23,105 @@ int main(int argc, char **argv) {
 
   std::cout << contents;
 
-  class pcc::lexer lexer(contents, argv[1]);
+  class lexer lexer(contents, argv[1]);
   lexer = lexer;
 
-  for (struct pcc::token tok = lexer.get_tok(); 
-      tok.type != pcc::END_OF_FILE;
+  for (struct token tok = lexer.get_tok(); 
+      tok.type != END_OF_FILE;
       tok = lexer.get_tok()) {
     printf("--------------------------------\n");
     switch (tok.type) {
-      case pcc::PARSE_ERROR:
+      case PARSE_ERROR:
         continue;
-      case pcc::DQSTRING: case pcc::SQSTRING:
+      case DQSTRING: case SQSTRING:
         printf("str = \"%.*s\"\n", (int)tok.str.len, tok.str.view);
         break;
-      case pcc::CHARLIT:
+      case CHARLIT:
         if (tok.charlit == '\n')
           printf("charlit = \\n\n");
         else
           printf("charlit = %c\n", tok.charlit);
         break;
-      case pcc::EQ:
+      case EQ:
         printf("charlit = ==\n");
         break;
-      case pcc::NOTEQ:
+      case NOTEQ:
         printf("charlit = !=\n");
         break;
-      case pcc::LESSEQ:
+      case LESSEQ:
         printf("charlit = <=\n");
         break;
-      case pcc::GREATEREQ:
+      case GREATEREQ:
         printf("charlit = >=\n");
         break;
-      case pcc::ANDAND:
+      case ANDAND:
         printf("charlit = &&\n");
         break;
-      case pcc::OROR:
+      case OROR:
         printf("charlit = ||\n");
         break;
-      case pcc::SHL:
+      case SHL:
         printf("charlit = <<\n");
         break;
-      case pcc::SHR:
+      case SHR:
         printf("charlit = >>\n");
         break;
-      case pcc::PLUSPLUS:
+      case PLUSPLUS:
         printf("charlit = ++\n");
         break;
-      case pcc::MINUSMINUS:
+      case MINUSMINUS:
         printf("charlit = --\n");
         break;
-      case pcc::PLUSEQ:
+      case PLUSEQ:
         printf("charlit = +=\n");
         break;
-      case pcc::MINUSEQ:
+      case MINUSEQ:
         printf("charlit = -=\n");
         break;
-      case pcc::MULEQ:
+      case MULEQ:
         printf("charlit = *=\n");
         break;
-      case pcc::DIVEQ:
+      case DIVEQ:
         printf("charlit = /=\n");
         break;
-      case pcc::MODEQ:
+      case MODEQ:
         printf("charlit = %%=\n");
         break;
-      case pcc::ANDEQ:
+      case ANDEQ:
         printf("charlit = &=\n");
         break;
-      case pcc::OREQ:
+      case OREQ:
         printf("charlit = |=\n");
         break;
-      case pcc::XOREQ:
+      case XOREQ:
         printf("charlit = ^=\n");
         break;
-      case pcc::SHLEQ:
+      case SHLEQ:
         printf("charlit = <<=\n");
         break;
-      case pcc::SHREQ:
+      case SHREQ:
         printf("charlit = >>=\n");
         break;
-      case pcc::ELIPSES:
+      case ELIPSES:
         printf("charlit = ...\n");
         break;
-      case pcc::ARROW:
+      case ARROW:
         printf("charlit = ->\n");
         break;
-      case pcc::POUNDPOUND:
+      case POUNDPOUND:
         printf("charlit = ##\n");
         break;
 
-      case pcc::ID:
+      case ID:
         printf("id = %.*s\n", (int)tok.str.len, tok.str.view);
         break;
 
-      case pcc::INTLIT:
+      case INTLIT:
         printf("intlit = %lu%.*s\n", tok.number.intlit,
                 (int)tok.number.suff.len, tok.number.suff.view);
         break;
 
-      case pcc::FLOATLIT:
+      case FLOATLIT:
         printf("floatlit = %.*s%.*s\n", (int)tok.number.float_lit.len,
                 tok.number.float_lit.view, (int)tok.number.suff.len,
                 tok.number.suff.view);

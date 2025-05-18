@@ -6,8 +6,6 @@
 #include <cstdlib>
 #include <cstdio>
 
-namespace pcc {
-
 #define FORMAT_ERROR(x) "\033[31;1m" x "\033[0m"
 
 void report_error(const char *path, const char *start, 
@@ -27,7 +25,4 @@ void report_error(const char *path, const char *start,
 
   std::fprintf(stderr, "%s:%u:%lu: " FORMAT_ERROR("error: ") "%s\n", 
                path, line_count, (ptrdiff_t)(loc - line_start) + 1, msg);
-  
-}
-
 }
