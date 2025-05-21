@@ -307,10 +307,10 @@ struct token lexer::get_tok(void) {
         if (*tmp == '"') tok.type = DQSTRING;
         else             tok.type = SQSTRING;
 
-        tok.str = get_string(tmp + 1, *tmp, &m_scratch, &m_strings, &m_cursor);
+        tok.str = get_string(tmp + 1, *tmp, m_scratch, m_strings, &m_cursor);
         if (tok.str.view == nullptr) {
           report_error(m_filepath, m_src, tok.location, 
-                       "Expected closing '\"'");
+                       "Expected closing '" FORMAT_ERROR("\"") "'");
           return {
             .type = PARSE_ERROR,
             .location = tok.location,
@@ -323,12 +323,12 @@ struct token lexer::get_tok(void) {
 
     if (*tmp == '_' || std::isalpha(*tmp)) {
       tok.type = ID;
-      tok.str = get_id(tmp, &m_scratch, &m_strings, &m_cursor);
+      tok.str = get_id(tmp, m_scratch, m_strings, &m_cursor);
       return tok;
     }
 
     if (std::isdigit(*tmp)) {
-      get_number(&tok, tmp, &m_scratch, &m_strings, &m_cursor);
+      get_number(&tok, tmp, m_scratch, m_strings, &m_cursor);
       return tok;
     }
 
@@ -340,44 +340,8 @@ struct token lexer::get_tok(void) {
   return tok;
 }
 
-class lexer &lexer::operator =(class lexer &that) {
-  if (&that == this) {
-    return *this;
-  }
-
-  delete[] m_src;
-  delete[] m_filepath;
-  m_scratch.reset();
-  m_strings.reset();
-
-  char *tmp;
-
-  tmp = new char[std::strlen(that.m_filepath) + 1];
-  std::strcpy(tmp, that.m_filepath);
-  m_filepath = tmp;
-
-  tmp = new char[std::strlen(that.m_src) + 1];
-  std::strcpy(tmp, that.m_src);
-  m_src = that.m_src;
-
-  m_cursor = m_src; 
-
-  return *this;
-}
-
-class lexer &lexer::operator =(class lexer &&that) {
-  m_scratch.reset();
-  m_strings.reset();
-
-  std::swap(m_filepath, that.m_filepath);
-  std::swap(m_src, that.m_src);
-  m_cursor = m_src;
-
-
-  return *this;
-}
-
-lexer::lexer(const char *src, const char *filepath) : m_scratch(), m_strings() {
+lexer::lexer(const char *src, const char *filepath, class arena *scratch,
+             class arena *strings) {
   size_t len = std::strlen(src);
 
   char *tmp = new char[len + 1];
@@ -389,6 +353,9 @@ lexer::lexer(const char *src, const char *filepath) : m_scratch(), m_strings() {
 
   m_src = tmp;
   m_cursor = m_src;
+
+  m_scratch = scratch;
+  m_strings = strings;
 }
 
 lexer::~lexer(void) {

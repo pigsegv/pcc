@@ -23,8 +23,9 @@ int main(int argc, char **argv) {
 
   std::cout << contents;
 
-  class lexer lexer(contents, argv[1]);
-  lexer = lexer;
+  class arena scratch = arena(), strings = arena();
+
+  class lexer lexer(contents, argv[1], &scratch, &strings);
 
   for (struct token tok = lexer.get_tok(); 
       tok.type != END_OF_FILE;

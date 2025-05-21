@@ -82,6 +82,12 @@ struct string_view get_id(const char *start, class arena *scratch,
 void get_number(struct token *token, const char *start, 
                 class arena *scratch, class arena *strings,
                 const char **end);
+
+/* 
+ * style -> '/' or '*'
+ * where, '/' -> c++ style
+ *        '*' -> c style
+ */
 const char *skip_comment(const char *start, char style);
 char resolve_esc(char c);
 

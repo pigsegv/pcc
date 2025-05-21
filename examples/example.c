@@ -1,17 +1,17 @@
 #include <stdio.h>
 
-#define LOL(x) int lol_##x;
-
-int test(int a, ...);
+struct a {
+  struct b {
+    int a;
+  };
+  
+  struct b lol;
+};
 
 int main(void) {
-  char *a = "\\hi";
-  int b = 60;
-  b = ~b;
 
-  float d = 0x0.0x6d;
-
-  dkfjkj"
+  struct a foo;
+  foo.lol.a = 10;
 
   return 0;
 }

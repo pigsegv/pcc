@@ -64,3 +64,12 @@ dirs:
 clean:
 	-@rm -rf $(OBJ)
 	-@rm -rf $(BIN)
+
+valgrind: 
+	@valgrind --leak-check=full \
+         --show-leak-kinds=all \
+         --track-origins=yes \
+         --verbose \
+         --log-file=./val.txt \
+				 --keep-debuginfo=yes\
+         ./bin/pcc examples/example.c sdkfjds

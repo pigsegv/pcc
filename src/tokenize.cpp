@@ -91,11 +91,6 @@ struct string_view get_string(const char *start, char q,
   return { nullptr, 0 }; // Parse error
 }
 
-/* 
- * style -> '/' or '*'
- * where, '/' -> c++ style
- *        '*' -> c style
- */
 const char *skip_comment(const char *start, char style) {
   while (*start) {
     if (style == '/') {

@@ -11,11 +11,13 @@
 
 class lexer {
 public:
-  lexer(const char *src, const char *filepath);
+  lexer(void) = delete;
+  lexer(const char *src, const char *filepath, class arena *scratch,
+        class arena *strings);
   ~lexer(void);
 
-  class lexer &operator =(class lexer &);
-  class lexer &operator =(class lexer &&);
+  class lexer &operator =(class lexer &) = delete;
+  class lexer &operator =(class lexer &&) = delete;
 
   struct token get_tok(void);
 
@@ -25,8 +27,8 @@ private:
   const char *m_src;
   const char *m_cursor;
 
-  class arena m_scratch;
-  class arena m_strings;
+  class arena *m_scratch;
+  class arena *m_strings;
 };
 
 #endif // PCC_LEXER_H

@@ -79,8 +79,8 @@ arena::~arena(void) {
   delete[] m_block;
 
   m_block = nullptr;
-  m_next = nullptr;
-  m_data = nullptr;
+  m_next  = nullptr;
+  m_data  = nullptr;
 
   m_allocated = 0;
 }
