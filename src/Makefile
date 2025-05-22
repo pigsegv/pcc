@@ -1,6 +1,6 @@
 OBJ := $(OBJ)/src
 
-CFLAGS += -std=c++20 -Wall -Wextra -ggdb3 -O3 -fsanitize=address -pedantic
+CFLAGS += -std=c++26 -Wall -Wextra -ggdb3 -O0 -fsanitize=address -pedantic
 CFLAGS += -Wno-missing-field-initializers -fno-exceptions
 LDFLAGS += -fsanitize=address -flto
 

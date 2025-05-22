@@ -23,9 +23,10 @@ int main(int argc, char **argv) {
 
   std::cout << contents;
 
-  class arena scratch = arena(), strings = arena();
+  class arena scratch = arena(), mem = arena();
+  printf("locked: %s\n", scratch.is_locked() ? "True" : "False");
 
-  class lexer lexer(contents, argv[1], &scratch, &strings);
+  class lexer lexer(contents, argv[1], &scratch, &mem);
 
   for (struct token tok = lexer.get_tok(); 
       tok.type != END_OF_FILE;

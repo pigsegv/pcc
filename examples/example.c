@@ -12,6 +12,7 @@ int main(void) {
 
   struct a foo;
   foo.lol.a = 10;
+  "hi";
 
   return 0;
 }

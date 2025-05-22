@@ -106,21 +106,6 @@ struct type_spec {
   };
 };
 
-struct field_decl {
-  uint64_t offset;
-  struct type_spec *type;
-};
-
-struct enum_const {
-  const char *name;
-  int value;
-};
-
-struct record_decl {
-  enum record_types type;
-  dynamic_array<struct decl *> decls;
-};
-
 struct decl {
   enum decl_types type;
   const char *name;
@@ -129,12 +114,8 @@ struct decl {
   enum storage_classes storage;
 
   union {
-    struct record_decl              *record_decl;
-    struct field_decl               *field_decl;
     struct function                 *func_decl;
     struct type_spec                *var_decl;
-    struct type_spec                *typedef_decl;
-    dynamic_array<struct enum_const> enum_decl;
   };
 };
 
@@ -151,6 +132,7 @@ struct ast_node {
     struct ast_node *next;
 
   } siblings;
+
   struct ast_node *child;
 };
 

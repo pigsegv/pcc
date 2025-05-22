@@ -3,12 +3,18 @@
 #include <stdint.h>
 #include <cstdio>
 #include <cstdlib>
+#include <assert.h>
 
 size_t arena::get_block_size(void) {
   return m_capacity;
 }
 
 uint64_t arena::save(void) {
+  if (m_locked) {
+    std::fprintf(stderr, "Attempted to save a locked arena\n");
+    std::abort();
+  }
+
   class arena *a = this;
 
   uint64_t node = 0;
@@ -23,6 +29,11 @@ uint64_t arena::save(void) {
 }
 
 void arena::restore(uint64_t state) {
+  if (m_locked) {
+    std::fprintf(stderr, "Attempted to restore a locked arena\n");
+    std::abort();
+  }
+
   uint64_t node = state / m_capacity;
   uint64_t offset = state % m_capacity;
 
@@ -38,6 +49,11 @@ void arena::restore(uint64_t state) {
 }
 
 void arena::reset(void) {
+  if (m_locked) {
+    std::fprintf(stderr, "Attempted to reset a locked arena\n");
+    std::abort();
+  }
+
   restore(0);
 }
 
@@ -55,6 +71,23 @@ class arena *arena::get_node(uint64_t node) {
   return a;
 }
 
+void arena::lock(void) {
+  if (m_locked) {
+    std::fprintf(stderr, "Attempted to lock a locked arena\n");
+    std::abort();
+  }
+
+  m_locked = true;
+}
+
+void arena::unlock(void) {
+  m_locked = false;
+}
+
+bool arena::is_locked(void) {
+  return m_locked;
+}
+
 char &arena::operator [](size_t index) {
   uint64_t node = index / m_capacity;
   uint64_t offset = index % m_capacity;
@@ -62,7 +95,7 @@ char &arena::operator [](size_t index) {
   return get_node(node)->m_data[offset];
 }
 
-arena::arena(size_t block_size) : m_capacity(block_size){
+arena::arena(size_t block_size) : m_capacity(block_size) {
   m_block = new char[block_size + sizeof(class arena)];
 
   m_next = nullptr;
