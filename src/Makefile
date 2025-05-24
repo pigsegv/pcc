@@ -1,6 +1,6 @@
 OBJ := $(OBJ)/src
 
-CFLAGS += -std=gnu++26 -Wall -Wextra -ggdb3 -O0 -fsanitize=address
+CFLAGS += -std=gnu++26 -Wall -Wextra -ggdb3 -O3 -fsanitize=address
 CFLAGS += -Wno-missing-field-initializers -fno-exceptions
 LDFLAGS += -fsanitize=address -flto
 

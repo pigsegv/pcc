@@ -25,6 +25,7 @@ enum operators {
 
   OP_REF,
   OP_DEREF,
+  OP_SUBSCRIPT,
 
   OP_FUNCALL,
 

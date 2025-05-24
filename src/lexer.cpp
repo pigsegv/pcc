@@ -6,9 +6,16 @@
 #include <cstring>
 #include <cctype>
 #include <utility>
+#include <optional>
 
 struct token lexer::get_tok(void) {
   struct token tok;
+
+  if (m_peeked.has_value()) {
+    tok = m_peeked.value();
+    m_peeked = std::nullopt;
+    return tok;
+  }
 
   const char *tmp = m_cursor;
   while (*tmp) {
@@ -369,6 +376,15 @@ Exit:
   return tok;
 }
 
+struct token lexer::peek(void) {
+  if (m_peeked.has_value()) {
+    return m_peeked.value();
+  }
+
+  m_peeked = get_tok();
+  return m_peeked.value();
+}
+
 lexer::lexer(const char *src, const char *filepath, class arena *scratch,
              class arena *strings) {
   size_t len = std::strlen(src);
@@ -382,6 +398,8 @@ lexer::lexer(const char *src, const char *filepath, class arena *scratch,
 
   m_src = tmp;
   m_cursor = m_src;
+
+  m_peeked = std::nullopt;
 
   m_scratch = scratch;
   m_strings = strings;

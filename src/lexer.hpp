@@ -8,6 +8,7 @@
 
 #include <string>
 #include <stdint.h>
+#include <optional>
 
 class lexer {
 public:
@@ -22,7 +23,11 @@ public:
   struct token get_tok(void);
   struct token get_tok_and_expect(enum tok_type type, ...);
 
+  struct token peek(void); // TODO
+
 private:
+  std::optional<struct token> m_peeked;
+
   char *m_filepath;
 
   const char *m_src;

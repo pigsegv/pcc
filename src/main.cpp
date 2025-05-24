@@ -26,8 +26,6 @@ int main(int argc, char **argv) {
 
   class lexer lexer(contents, argv[1], &scratch, &mem);
   parse(&lexer, &scratch, &mem);
-  
-
 
   // for (struct token tok = lexer.get_tok(); 
       // tok.type != END_OF_FILE;
