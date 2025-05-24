@@ -1,18 +1,9 @@
 #include <stdio.h>
-
-struct a {
-  struct b {
-    int a;
-  };
-  
-  struct b lol;
-};
-
 int main(void) {
+  int a;
+  a = 20;
+  "dkjf
 
-  struct a foo;
-  foo.lol.a = 10;
-  "hi";
-
+  printf("%d\n", a);
   return 0;
 }

@@ -2,6 +2,7 @@
 #include "tokenize.hpp"
 #include "error.hpp"
 
+#include <cstdarg>
 #include <cstring>
 #include <cctype>
 #include <utility>
@@ -310,7 +311,7 @@ struct token lexer::get_tok(void) {
         tok.str = get_string(tmp + 1, *tmp, m_scratch, m_strings, &m_cursor);
         if (tok.str.view == nullptr) {
           report_error(m_filepath, m_src, tok.location, 
-                       "Expected closing '" FORMAT_ERROR("\"") "'");
+                       "Expected closing '" FORMAT_ERROR("\"") "'\n");
           return {
             .type = PARSE_ERROR,
             .location = tok.location,
@@ -337,6 +338,34 @@ struct token lexer::get_tok(void) {
   m_cursor = tmp;
 
   tok.type = END_OF_FILE;
+  return tok;
+}
+
+
+struct token lexer::get_tok_and_expect(enum tok_type type, ...) {
+  std::va_list args;
+  va_start(args, type);
+
+  struct token tok = get_tok();
+  if (tok.type != type) {
+    report_error(m_filepath, m_src, tok.location,
+                 "Expected %d, but got %d\n", type, tok.type);
+    tok.type = PARSE_ERROR;
+    goto Exit;
+  }
+
+  if (tok.type == CHARLIT) {
+    int c = va_arg(args, int);
+    if (tok.charlit != c) {
+      report_error(m_filepath, m_src, tok.location,
+                  "Expected '%c', but got '%c'\n", c, tok.charlit);
+      tok.type = PARSE_ERROR;
+      goto Exit;
+    }
+  }
+
+Exit:
+  va_end(args);
   return tok;
 }
 
