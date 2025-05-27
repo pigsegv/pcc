@@ -7,6 +7,8 @@
 #include "decls.hpp"
 #include "types.hpp"
 #include "expr.hpp"
+#include "stmt.hpp"
+#include "block.hpp"
 
 #include <string>
 #include <stdint.h>
@@ -21,11 +23,15 @@ enum node_types {
 
 struct ast_node {
   enum node_types type;
-  int64_t id;
+  uint64_t id;
 
   union {
     struct decl *decl;
+    struct block *block;
+    struct stmt *stmt;
   };
+
+  struct ast_node *parent;
 
   struct {
     struct ast_node *prev;
@@ -36,7 +42,6 @@ struct ast_node {
   struct ast_node *child;
 };
 
-struct ast_node parse(class lexer *lexer, class arena *scratch,
-                      class arena *arena);
+struct ast_node parse(class lexer *lexer, class arena *arena);
 
 #endif // PCC_PARSE_H

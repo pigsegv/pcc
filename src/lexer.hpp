@@ -25,6 +25,9 @@ public:
 
   struct token peek(void); // TODO
 
+  const char *get_filepath(void) { return m_filepath; }
+  const char *get_src(void) { return m_src; }
+
 private:
   std::optional<struct token> m_peeked;
 

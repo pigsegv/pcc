@@ -4,6 +4,7 @@
 #define PCC_EXPR_H
 
 #include "types.hpp"
+#include "literals.hpp"
 
 enum operators {
   OP_NONE,
@@ -85,7 +86,8 @@ struct expr {
       struct expr *fail;
     };
 
-    void *value; // Don't know what this is going to be yet
+    // void *value; // Don't know what this is going to be yet
+    struct literal *value;
   };
 };
 

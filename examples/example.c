@@ -1,5 +1,3 @@
-int printf(const char *fmt, ...);
-
 int main(void) {
   int a;
   

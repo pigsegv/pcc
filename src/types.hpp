@@ -13,6 +13,7 @@ enum types {
   TYPE_FUNC,
 
   TYPE_CHAR,
+  TYPE_SCHAR,
   TYPE_UCHAR,
   TYPE_SHORT,
   TYPE_USHORT,

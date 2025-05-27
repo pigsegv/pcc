@@ -3,6 +3,8 @@
 #ifndef PCC_TOKENIZE_HPP
 #define PCC_TOKENIZE_HPP
 
+#include "string_view.hpp"
+
 #include <stdint.h>
 
 enum tok_type {
@@ -48,11 +50,6 @@ enum tok_type {
   SHREQ,
   POUNDPOUND,
   ELIPSES,
-};
-
-struct string_view {
-  const char *view;
-  uint64_t len;
 };
 
 struct number {

@@ -8,12 +8,12 @@
 #include <stdint.h>
 
 enum lit_types {
-  LIT_SHORT
+  LIT_SHORT,
   LIT_INT,
   LIT_LONG,
   LIT_LONG_LONG,
 
-  LIT_USHORT
+  LIT_USHORT,
   LIT_UINT,
   LIT_ULONG,
   LIT_ULONG_LONG,
@@ -25,6 +25,7 @@ enum lit_types {
   LIT_STR,
 
   LIT_CHAR,
+  LIT_SCHAR,
   LIT_UCHAR,
 
   LIT_PTR,
@@ -57,6 +58,7 @@ struct literal {
     const char        *lit_str;
 
     char               lit_char;
+    signed char        lit_schar;
     unsigned char      lit_uchar;
 
     void              *lit_ptr;

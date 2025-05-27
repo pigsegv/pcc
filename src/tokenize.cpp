@@ -1,4 +1,5 @@
 #include "tokenize.hpp"
+#include "string_view.hpp"
 #include "arena.hpp"
 #include "dynamic-array.hpp"
 #include "error.hpp"
