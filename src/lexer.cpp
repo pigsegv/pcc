@@ -315,7 +315,7 @@ struct token lexer::get_tok(void) {
         if (*tmp == '"') tok.type = DQSTRING;
         else             tok.type = SQSTRING;
 
-        tok.str = get_string(tmp + 1, *tmp, m_scratch, m_strings, &m_cursor);
+        tok.str = get_string(m_strings_map, tmp + 1, *tmp, m_strings, &m_cursor);
         if (tok.str.view == nullptr) {
           report_error(m_filepath, m_src, tok.location, 
                        "Expected closing '" FORMAT_ERROR("\"") "'\n");
@@ -331,12 +331,12 @@ struct token lexer::get_tok(void) {
 
     if (*tmp == '_' || std::isalpha(*tmp)) {
       tok.type = ID;
-      tok.str = get_id(tmp, m_scratch, m_strings, &m_cursor);
+      tok.str = get_id(m_strings_map, tmp, m_strings, &m_cursor);
       return tok;
     }
 
     if (std::isdigit(*tmp)) {
-      get_number(&tok, tmp, m_scratch, m_strings, &m_cursor);
+      get_number(m_strings_map, &tok, tmp, m_strings, &m_cursor);
       return tok;
     }
 
@@ -385,8 +385,7 @@ struct token lexer::peek(void) {
   return m_peeked.value();
 }
 
-lexer::lexer(const char *src, const char *filepath, class arena *scratch,
-             class arena *strings) {
+lexer::lexer(const char *src, const char *filepath, class arena *strings) {
   size_t len = std::strlen(src);
 
   char *tmp = new char[len + 1];
@@ -401,7 +400,6 @@ lexer::lexer(const char *src, const char *filepath, class arena *scratch,
 
   m_peeked = std::nullopt;
 
-  m_scratch = scratch;
   m_strings = strings;
 }
 

@@ -4,8 +4,13 @@
 #define PCC_TOKENIZE_HPP
 
 #include "string_view.hpp"
+#include "arena.hpp"
 
 #include <stdint.h>
+#include <unordered_map>
+#include <string>
+#include <string_view>
+#include <functional>
 
 enum tok_type {
   /*
@@ -71,14 +76,34 @@ struct token {
   };
 };
 
-struct string_view get_string(const char *start, char q,
-                              class arena *scratch, class arena *strings, 
-                              const char **end);
-struct string_view get_id(const char *start, class arena *scratch,
+struct sv_map_hash {
+  using is_transparent = void;
+
+  size_t operator ()(const char *key) const noexcept {
+    std::string_view &&view = std::string_view(key, std::strlen(key));
+    return std::hash<std::string_view>{}(view);
+  }
+
+  size_t operator ()(const std::string_view &key) const noexcept {
+    return std::hash<std::string_view>{}(key);
+  }
+
+  size_t operator ()(const std::string &key) {
+    return std::hash<std::string>{}(key);
+  }
+};
+
+using sv_map = std::unordered_map<const char *, struct string_view,
+                                  sv_map_hash, std::equal_to<>>;
+
+struct string_view get_string(sv_map &strings_map, const char *start, char q,
+                              class arena *strings, const char **end);
+
+struct string_view get_id(sv_map &strings_map, const char *start, 
                           class arena *strings, const char **end);
-void get_number(struct token *token, const char *start, 
-                class arena *scratch, class arena *strings,
-                const char **end);
+
+void get_number(sv_map &strings_map, struct token *token, const char *start,
+                class arena *strings, const char **end);
 
 /* 
  * style -> '/' or '*'

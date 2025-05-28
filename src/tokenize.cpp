@@ -1,10 +1,13 @@
 #include "tokenize.hpp"
 #include "string_view.hpp"
 #include "arena.hpp"
-#include "dynamic-array.hpp"
 #include "error.hpp"
 
 #include <assert.h>
+#include <vector>
+#include <cstring>
+#include <cctype>
+#include <string_view>
 
 char resolve_esc(char c) {
   switch (c) {
@@ -37,10 +40,8 @@ char resolve_esc(char c) {
   }
 }
 
-struct string_view get_string(const char *start, char q, 
-                                     class arena *scratch, 
-                                     class arena *strings,
-                                     const char **end) {
+struct string_view get_string(sv_map &strings_map, const char *start, char q,
+                              class arena *strings, const char **end) {
   if (q != '\'' && q != '"') {
     assert(0 && "Unreachable");
   }
@@ -48,7 +49,7 @@ struct string_view get_string(const char *start, char q,
   bool escape = false;
   struct string_view sv = { };
 
-  struct dynamic_array<char> scratch_da(scratch);
+  std::vector<char> scratch;
 
   while (*start) {
     if (escape) {
@@ -57,7 +58,7 @@ struct string_view get_string(const char *start, char q,
         continue;
       }
 
-      scratch_da.append(resolve_esc(*start));
+      scratch.push_back(resolve_esc(*start));
       escape = false;
 
     } else {
@@ -65,15 +66,25 @@ struct string_view get_string(const char *start, char q,
         escape = true;
 
       } else if (*start == q) {
-        char *tmp = strings->alloc<char>(scratch_da.count);
-        sv.len = scratch_da.count;
-        for (uint64_t i = 0; i < scratch_da.count; i++) {
-          tmp[i] = scratch_da[i];
+        if (end != nullptr) *end = start + 1;
+
+        auto &&key = std::string_view(scratch.begin(), scratch.end());
+        if (auto search = strings_map.find(key); 
+              search != strings_map.end()) {
+          return search->second;
         }
 
-        sv.view = tmp;
+        char *tmp = strings->alloc<char>(scratch.size() + 1);
+        sv.len = scratch.size();
+        for (uint64_t i = 0; i < scratch.size(); i++) {
+          tmp[i] = scratch[i];
+        }
 
-        if (end != nullptr) *end = start + 1;
+        tmp[scratch.size()] = 0;
+
+        sv.view = tmp;
+        
+        strings_map.insert({sv.view, sv});
 
         return sv;
 
@@ -82,7 +93,7 @@ struct string_view get_string(const char *start, char q,
         return { nullptr, 0 }; // Parse error
 
       } else {
-        scratch_da.append(*start);
+        scratch.push_back(*start);
       }
     }
 
@@ -119,32 +130,41 @@ const char *skip_comment(const char *start, char style) {
   return start;
 }
 
-struct string_view get_id(const char *start, class arena *scratch,
-                                 class arena *strings, const char **end) {
+struct string_view get_id(sv_map &strings_map, const char *start, 
+                          class arena *strings, const char **end) {
   struct string_view sv = { .view = nullptr };
-  struct dynamic_array<char> scratch_da(scratch);
+  std::vector<char> scratch;
 
   while (*start) {
     if (*start != '_' && !std::isalpha(*start) && !std::isdigit(*start)) {
-      if (scratch_da.count == 0) {
+      if (scratch.size() == 0) {
         if (end != nullptr) *end = start;
         return sv;
       }
+      if (end != nullptr) *end = start;
 
-      char *tmp = strings->alloc<char>(scratch_da.count);
-      for (uint64_t i = 0; i < scratch_da.count; i++) {
-        tmp[i] = scratch_da[i];
+      auto &&key = std::string_view(scratch.begin(), scratch.end());
+      if (auto search = strings_map.find(key); 
+            search != strings_map.end()) {
+        return search->second;
       }
 
-      sv.view = tmp;
-      sv.len = scratch_da.count;
+      char *tmp = strings->alloc<char>(scratch.size() + 1);
+      for (uint64_t i = 0; i < scratch.size(); i++) {
+        tmp[i] = scratch[i];
+      }
+      
+      tmp[scratch.size()] = 0;
 
-      if (end != nullptr) *end = start;
+      sv.view = tmp;
+      sv.len = scratch.size();
+
+      strings_map.insert({sv.view, sv});
 
       return sv;
     }
 
-    scratch_da.append(*start);
+    scratch.push_back(*start);
 
     start++;
   }
@@ -152,9 +172,8 @@ struct string_view get_id(const char *start, class arena *scratch,
   return sv;
 }
 
-void get_number(struct token *token, const char *start, 
-                       class arena *scratch, class arena *strings,
-                       const char **end) {
+void get_number(sv_map &strings_map, struct token *token, const char *start,
+                class arena *strings, const char **end) {
   char *int_end, *float_end;
 
   uint64_t int_rep = std::strtoull(start, &int_end, 0);
@@ -171,14 +190,14 @@ void get_number(struct token *token, const char *start,
       token->number.float_lit.len = (ptrdiff_t)(float_end - start);
     }
     
-    token->number.suff = get_id(float_end, scratch, strings, end);
+    token->number.suff = get_id(strings_map, float_end, strings, end);
 
     return;
   } else {
     token->type = INTLIT;
 
     token->number.intlit = int_rep;
-    token->number.suff = get_id(int_end, scratch, strings, end);
+    token->number.suff = get_id(strings_map, int_end, strings, end);
 
     return;
   }

@@ -5,16 +5,18 @@
 
 #include "tokenize.hpp"
 #include "arena.hpp"
+#include "string_view.hpp"
 
 #include <string>
 #include <stdint.h>
 #include <optional>
+#include <vector>
+#include <unordered_map>
 
 class lexer {
 public:
   lexer(void) = delete;
-  lexer(const char *src, const char *filepath, class arena *scratch,
-        class arena *strings);
+  lexer(const char *src, const char *filepath, class arena *strings);
   ~lexer(void);
 
   class lexer &operator =(class lexer &) = delete;
@@ -36,8 +38,9 @@ private:
   const char *m_src;
   const char *m_cursor;
 
-  class arena *m_scratch;
   class arena *m_strings;
+
+  sv_map m_strings_map;
 };
 
 #endif // PCC_LEXER_H
