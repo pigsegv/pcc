@@ -2,7 +2,6 @@
 #define UTIL_FILE_IO_IMPLEMENTATION
 #include "file-io.hpp"
 #include "arena.hpp"
-#include "dynamic-array.hpp"
 #include "parse.hpp"
 
 #include <cstdio>

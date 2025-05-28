@@ -23,7 +23,7 @@ static bool is_type(const struct string_view &sv, const sv_vec &types) {
 }
 
 static void parse_block(struct context *ctx, class lexer *lexer, 
-                        class ast_node *node, class arena *arena) {
+                        struct ast_node *node, class arena *arena) {
   struct ast_node *last_child = nullptr;
   for (;;) {
     struct token tok = lexer->peek();

@@ -349,7 +349,7 @@ struct token lexer::get_tok(void) {
 }
 
 
-struct token lexer::get_tok_and_expect(enum tok_type type, ...) {
+struct token lexer::get_tok_and_expect(int type, ...) {
   std::va_list args;
   va_start(args, type);
 
@@ -365,7 +365,7 @@ struct token lexer::get_tok_and_expect(enum tok_type type, ...) {
     int c = va_arg(args, int);
     if (tok.charlit != c) {
       report_error(m_filepath, m_src, tok.location,
-                  "Expected '%c', but got '%c'\n", c, tok.charlit);
+                   "Expected '%c', but got '%c'\n", c, tok.charlit);
       tok.type = PARSE_ERROR;
       goto Exit;
     }

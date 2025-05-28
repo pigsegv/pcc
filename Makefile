@@ -13,9 +13,9 @@ define relative_foreach
 	$(foreach _dir, $(1), $(shell realpath -s --relative-to="$(ROOT_PATH)" $(_dir)))
 endef
 
-CC := g++
+CC := clang++
 AS := fasm
-LD := g++
+LD := clang++
 
 SRC := $(ROOT_PATH)/src
 OBJ := $(ROOT_PATH)/obj

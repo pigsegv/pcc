@@ -76,26 +76,6 @@ struct token {
   };
 };
 
-struct sv_map_hash {
-  using is_transparent = void;
-
-  size_t operator ()(const char *key) const noexcept {
-    std::string_view &&view = std::string_view(key, std::strlen(key));
-    return std::hash<std::string_view>{}(view);
-  }
-
-  size_t operator ()(const std::string_view &key) const noexcept {
-    return std::hash<std::string_view>{}(key);
-  }
-
-  size_t operator ()(const std::string &key) {
-    return std::hash<std::string>{}(key);
-  }
-};
-
-using sv_map = std::unordered_map<const char *, struct string_view,
-                                  sv_map_hash, std::equal_to<>>;
-
 struct string_view get_string(sv_map &strings_map, const char *start, char q,
                               class arena *strings, const char **end);
 

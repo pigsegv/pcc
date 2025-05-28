@@ -23,7 +23,7 @@ public:
   class lexer &operator =(class lexer &&) = delete;
 
   struct token get_tok(void);
-  struct token get_tok_and_expect(enum tok_type type, ...);
+  struct token get_tok_and_expect(int type, ...);
 
   struct token peek(void); // TODO
 

@@ -14,8 +14,6 @@
 #define ARENA_DEF_BLOCK_SIZE 4096
 
 class arena {
-  template <trivially_copyable T>
-  friend class dynamic_array;
 public:
   arena(size_t block_size = ARENA_DEF_BLOCK_SIZE);
   ~arena(void);
@@ -51,37 +49,6 @@ private:
 };
 
 template <typename T>
-class arena_allocator {
-public:
-  using value_type      = T;
-  using pointer         = T *;
-  using const_pointer   = const T *;
-  using reference       = T &;
-  using const_reference = const T &;
-  using size_type       = size_t;
-  using difference_type = ptrdiff_t;
-  
-  arena_allocator() : m_arena() { }
-
-  pointer allocate(size_type n) {
-    return m_arena.alloc<value_type>(n * sizeof(value_type));
-  }
-
-  void deallocate(pointer p, size_type n) { };
-  void destroy(pointer);
-
-  bool operator ==(class arena_allocator<value_type> &) {
-    return false;
-  };
-  bool operator !=(class arena_allocator<value_type> &) {
-    return true;
-  };
-
-private:
-  class arena m_arena;
-};
-
-template <typename T>
 T *arena::alloc(size_t size) {
   if (m_locked) {
     std::fprintf(stderr, "Attempted to allocate to a locked arena\n");
@@ -105,8 +72,5 @@ T *arena::alloc(size_t size) {
     return block;
   }
 }
-
-using arena_str = std::basic_string<char, std::char_traits<char>,
-                                    arena_allocator<char>>;
 
 #endif // UTIL_ARENA_H

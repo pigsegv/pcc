@@ -32,4 +32,5 @@ void report_error(const char *path, const char *start,
   std::va_list args;
   va_start(args, fmt);
   std::vfprintf(stderr, fmt, args);
+  va_end(args);
 }
