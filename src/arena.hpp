@@ -18,8 +18,7 @@ public:
   arena(size_t block_size = ARENA_DEF_BLOCK_SIZE);
   ~arena(void);
 
-  template <typename T>
-  T *alloc(size_t size);
+  void *alloc(size_t size);
 
   char &operator [](size_t index);
   size_t save(void);
@@ -47,30 +46,5 @@ private:
 
   bool m_locked = false;
 };
-
-template <typename T>
-T *arena::alloc(size_t size) {
-  if (m_locked) {
-    std::fprintf(stderr, "Attempted to allocate to a locked arena\n");
-    std::abort();
-  }
-
-  if (size > m_capacity) return nullptr;
-
-  if (m_allocated + size > m_capacity) {
-    if (m_next == nullptr) {
-      m_next = new (m_block) arena(m_capacity);
-    }
-
-    m_allocated = m_capacity; // Mark this node as 'full'
-
-    return m_next->alloc<T>(size);
-
-  } else {
-    T *block = (T *)(m_data + m_allocated);
-    m_allocated += size;
-    return block;
-  }
-}
 
 #endif // UTIL_ARENA_H

@@ -1,6 +1,5 @@
 int main(void) {
-  float a;
-  float b;
+  int a;
   
   a = 10;
 

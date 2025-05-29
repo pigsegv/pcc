@@ -95,6 +95,30 @@ char &arena::operator [](size_t index) {
   return get_node(node)->m_data[offset];
 }
 
+void *arena::alloc(size_t size) {
+  if (m_locked) {
+    std::fprintf(stderr, "Attempted to allocate to a locked arena\n");
+    std::abort();
+  }
+
+  if (size > m_capacity) return nullptr;
+
+  if (m_allocated + size > m_capacity) {
+    if (m_next == nullptr) {
+      m_next = new (m_block) arena(m_capacity);
+    }
+
+    m_allocated = m_capacity; // Mark this node as 'full'
+
+    return m_next->alloc(size);
+
+  } else {
+    void *block = m_data + m_allocated;
+    m_allocated += size;
+    return block;
+  }
+}
+
 arena::arena(size_t block_size) : m_capacity(block_size) {
   m_block = new char[block_size + sizeof(class arena)];
 

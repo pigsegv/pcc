@@ -74,7 +74,7 @@ struct string_view get_string(sv_map &strings_map, const char *start, char q,
           return search->second;
         }
 
-        char *tmp = strings->alloc<char>(scratch.size() + 1);
+        char *tmp = (char *)strings->alloc(scratch.size() + 1);
         sv.len = scratch.size();
         for (uint64_t i = 0; i < scratch.size(); i++) {
           tmp[i] = scratch[i];
@@ -149,7 +149,7 @@ struct string_view get_id(sv_map &strings_map, const char *start,
         return search->second;
       }
 
-      char *tmp = strings->alloc<char>(scratch.size() + 1);
+      char *tmp = (char *)strings->alloc(scratch.size() + 1);
       for (uint64_t i = 0; i < scratch.size(); i++) {
         tmp[i] = scratch[i];
       }
@@ -184,7 +184,7 @@ void get_number(sv_map &strings_map, struct token *token, const char *start,
     token->type = FLOATLIT;
 
     {
-      char *tmp = strings->alloc<char>((ptrdiff_t)(float_end - start));
+      char *tmp = (char *)strings->alloc((ptrdiff_t)(float_end - start));
       std::memcpy(tmp, start, (ptrdiff_t)(float_end - start));
       token->number.float_lit.view = tmp;
       token->number.float_lit.len = (ptrdiff_t)(float_end - start);

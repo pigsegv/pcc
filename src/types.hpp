@@ -3,6 +3,10 @@
 #ifndef PCC_TYPES_H
 #define PCC_TYPES_H
 
+#include "string_view.hpp"
+
+#include <utility>
+
 enum types {
   TYPE_PTR,
   TYPE_ARRAY,
@@ -67,5 +71,25 @@ struct type_spec {
   };
 };
 
+#define TO_MAP(str)                     \
+  std::pair(                            \
+    str,                                \
+    TO_SV(str)                          \
+  )
+
+const inline cstr_umap<struct string_view> primitives = {
+  TO_MAP("short"),
+  TO_MAP("int"),
+  TO_MAP("long"),
+  TO_MAP("char"),
+
+  TO_MAP("signed"),
+  TO_MAP("unsigned"),
+
+  TO_MAP("float"),
+  TO_MAP("double"),
+
+  TO_MAP("void"),
+};
 
 #endif // PCC_TYPES_H

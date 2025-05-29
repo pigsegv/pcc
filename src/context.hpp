@@ -5,6 +5,9 @@
 
 #include "string_view.hpp"
 #include "tokenize.hpp"
+#include "arena.hpp"
+#include "lexer.hpp"
+
 
 #include <vector>
 
@@ -18,31 +21,17 @@ using sv_vec = std::vector<struct string_view>;
 using ident_map = cstr_umap<struct string_view>;
 
 struct context {
-  context(const char *filepath, const char *src) 
-    : filepath(filepath), src(src) { }
-
-  ident_map types = {
-    TO_MAP("short"),
-    TO_MAP("int"),
-    TO_MAP("long"),
-    TO_MAP("char"),
-
-    TO_MAP("signed"),
-    TO_MAP("unsigned"),
-
-    TO_MAP("float"),
-    TO_MAP("double"),
-
-    TO_MAP("void"),
-  };
-
-  ident_map ids;
-  ident_map tagged_ids; // Structs, unions, enums
+  context(const char *filepath, const char *src, class lexer *lexer,
+          class arena *arena) 
+    : filepath(filepath), src(src), lexer(lexer), arena(arena) { }
   
   uint64_t id_counter = 0;
 
   const char *filepath;
   const char *src;
+
+  class lexer *lexer;
+  class arena *arena;
 };
 
 #endif // PCC_CONTEXT_H
