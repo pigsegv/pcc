@@ -11,15 +11,6 @@
 
 #include <vector>
 
-#define TO_MAP(str)                     \
-  std::pair(                            \
-    str,                                \
-    TO_SV(str)                          \
-  )
-
-using sv_vec = std::vector<struct string_view>;
-using ident_map = cstr_umap<struct string_view>;
-
 struct context {
   context(const char *filepath, const char *src, class lexer *lexer,
           class arena *arena) 

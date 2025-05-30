@@ -7,9 +7,12 @@
 
 #include <utility>
 
-enum types {
+enum types : int {
+  TYPE_NONE,
+
   TYPE_PTR,
   TYPE_ARRAY,
+  TYPE_STR, // This is for string literals
 
   TYPE_RECORD,
   TYPE_ENUM,
@@ -71,25 +74,30 @@ struct type_spec {
   };
 };
 
-#define TO_MAP(str)                     \
+#define TO_MAP(str, type_enum)          \
   std::pair(                            \
     str,                                \
-    TO_SV(str)                          \
+    type_enum                           \
   )
 
-const inline cstr_umap<struct string_view> primitives = {
-  TO_MAP("short"),
-  TO_MAP("int"),
-  TO_MAP("long"),
-  TO_MAP("char"),
+// I should probably give a better name to this
+static const cstr_umap<enum types> primitives = {
+  TO_MAP("short", TYPE_SHORT),
+  TO_MAP("int", TYPE_INT),
+  TO_MAP("char", TYPE_CHAR),
+  TO_MAP("long", TYPE_NONE),
 
-  TO_MAP("signed"),
-  TO_MAP("unsigned"),
+  TO_MAP("signed", TYPE_NONE),
+  TO_MAP("unsigned", TYPE_NONE),
 
-  TO_MAP("float"),
-  TO_MAP("double"),
+  TO_MAP("struct", TYPE_NONE),
+  TO_MAP("union", TYPE_NONE),
+  TO_MAP("enum", TYPE_NONE),
 
-  TO_MAP("void"),
+  TO_MAP("float", TYPE_FLOAT),
+  TO_MAP("double", TYPE_DOUBLE),
+
+  TO_MAP("void", TYPE_VOID),
 };
 
 #endif // PCC_TYPES_H

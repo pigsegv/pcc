@@ -10,11 +10,7 @@
 #include <unordered_map>
 #include <functional>
 
-#define TO_SV(str)            \
-  string_view {               \
-    .view = str,              \
-    .len = std::strlen(str),  \
-  }
+#define TO_STD_SV(str) std::string_view((str).view, (str).len)
 
 struct string_view {
   const char *view;

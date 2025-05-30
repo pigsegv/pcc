@@ -86,8 +86,8 @@ struct expr {
       struct expr *fail;
     };
 
-    // void *value; // Don't know what this is going to be yet
     struct literal *value;
+    struct string_view identifier;
   };
 };
 

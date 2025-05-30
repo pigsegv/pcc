@@ -1,0 +1,4 @@
+I have no idea why, when the raw character pointer is passed as the key into a
+an unordered map, as opposed to when an std::string_view of the exact same pointer
+is passed into the unordered map, the hashes are different, even though strcmp
+reports that the strings are equal.

@@ -21,6 +21,10 @@ struct token lexer::get_tok(void) {
   while (*tmp) {
     tok.location = tmp;
 
+    /* 
+     * I'm sure there's a more elegant way to do this, cause right now,
+     * this just sucks
+     */
     switch (*tmp) {
       case '/': {
         switch (*(tmp + 1)) {

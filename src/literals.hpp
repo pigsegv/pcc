@@ -4,41 +4,12 @@
 #define PCC_LITERALS_H
 
 #include "types.hpp"
+#include "string_view.hpp"
 
 #include <stdint.h>
 
-enum lit_types {
-  LIT_SHORT,
-  LIT_INT,
-  LIT_LONG,
-  LIT_LONG_LONG,
-
-  LIT_USHORT,
-  LIT_UINT,
-  LIT_ULONG,
-  LIT_ULONG_LONG,
-
-  LIT_FLOAT,
-  LIT_DOUBLE,
-  LIT_LONG_DOUBLE,
-
-  LIT_STR,
-
-  LIT_CHAR,
-  LIT_SCHAR,
-  LIT_UCHAR,
-
-  LIT_PTR,
-
-  LIT_ENUM,
-
-  // Only used during initialization
-  LIT_ARRAY,
-  LIT_RECORD,
-};
-
 struct literal {
-  enum lit_types type;
+  enum types type;
 
   union {
     short              lit_short;
@@ -55,7 +26,7 @@ struct literal {
     double             lit_double;
     long double        lit_longdouble;
 
-    const char        *lit_str;
+    struct string_view lit_str;
 
     char               lit_char;
     signed char        lit_schar;
@@ -63,7 +34,7 @@ struct literal {
 
     void              *lit_ptr;
 
-    const char        *lit_enum;
+    struct string_view lit_enum;
 
     struct {
       struct literal *ems;

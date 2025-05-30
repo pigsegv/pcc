@@ -15,6 +15,8 @@
 #include <utility>
 
 enum node_types {
+  NODE_TYPE_NONE,
+
   NODE_TYPE_PARSE_ERR,
   NODE_TYPE_BLOCK,
   NODE_TYPE_STMT,

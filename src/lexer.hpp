@@ -22,6 +22,10 @@ public:
   class lexer &operator =(class lexer &) = delete;
   class lexer &operator =(class lexer &&) = delete;
 
+  /*
+   * All string views returned through the token are 
+   * guaranteed to be null-terminated
+   */
   struct token get_tok(void);
   struct token get_tok_and_expect(int type, ...);
 
