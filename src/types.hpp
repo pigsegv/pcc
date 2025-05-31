@@ -34,6 +34,13 @@ enum types : int {
   TYPE_DOUBLE,
   TYPE_LONGDOUBLE,
 
+  // These are to make sure that both signed and unsigned don't appear
+  // in the same declaration.
+  TYPE_SSHORT,
+  TYPE_SINT,
+  TYPE_SLONG,
+  TYPE_SLONGLONG,
+
   TYPE_VARIADIC,
   TYPE_VOID,
 };

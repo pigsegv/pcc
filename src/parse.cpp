@@ -30,27 +30,107 @@ static bool find_type_in_scope(const struct string_view *sv,
   return false;
 }
 
+static enum types to_unsigned(enum types type) {
+  switch (type) {
+    case TYPE_NONE:
+      return TYPE_UINT;
+
+    case TYPE_CHAR:
+      return TYPE_UCHAR;
+
+    case TYPE_SHORT:
+      return TYPE_USHORT;
+    case TYPE_INT:
+      return TYPE_UINT;
+    case TYPE_LONG:
+      return TYPE_ULONG;
+    case TYPE_LONGLONG:
+      return TYPE_ULONGLONG;
+
+    default:
+      return TYPE_NONE;
+  }
+}
+
+static enum types to_signed(enum types type) {
+  switch (type) {
+    case TYPE_NONE:
+      return TYPE_SINT;
+
+    case TYPE_CHAR:
+      return TYPE_SCHAR;
+
+    case TYPE_SHORT:
+      return TYPE_SSHORT;
+    case TYPE_INT:
+      return TYPE_SINT;
+    case TYPE_LONG:
+      return TYPE_SLONG;
+    case TYPE_LONGLONG:
+      return TYPE_SLONGLONG;
+
+    default:
+      return TYPE_NONE;
+  }
+}
+
+static enum types strip_signed(enum types type) {
+  switch (type) {
+    case TYPE_SSHORT:
+      return TYPE_SHORT;
+    case TYPE_SINT:
+      return TYPE_INT;
+    case TYPE_SLONG:
+      return TYPE_LONG;
+    case TYPE_SLONGLONG:
+      return TYPE_LONGLONG;
+
+    default:
+      return type;
+  }
+}
+
+static void parse_type(struct context *ctx,
+                       std::vector<struct scope> *scopes, 
+                       struct ast_node *curr, 
+                       struct type_spec *type) {
+
+}
+
 static void parse_decl(struct context *ctx,
                        std::vector<struct scope> *scopes, 
                        struct ast_node *curr) {
   struct token tok = ctx->lexer->get_tok();
-  if (strcmp(tok.str, "struct") == 0 || strcmp(tok.str, "union") == 0 || 
-      strcmp(tok.str, "enum") == 0) {
+  struct token peeked = ctx->lexer->peek();
+
+  if (std::strcmp(tok.str.view, "struct") == 0 || 
+      std::strcmp(tok.str.view, "union") == 0 || 
+      std::strcmp(tok.str.view, "enum") == 0) {
+    /* 
+     * Possible declarations ->
+     *   variable
+     *   function
+     *   record
+     *   enum
+     */
     assert(0 && "TODO: Handle non-primitive types");
+
+  } else if (std::strcmp(tok.str.view, "typedef")) {
+    assert(0 && "TODO: Handle typedefs");
   }
 
-  if (auto s = primitives.find(TO_STD_SV(tok.str));
-      s != primitives.end()) {
-
-  } else {
-    assert(0 && "TODO: Handle non-primitive types");
-  }
+  /* 
+   * Possible declarations ->
+   *   variable
+   *   function
+   */
+  struct type_spec t;
+  parse_type(ctx, scopes, curr, &t);
 }
 
 static void parse_block(struct context *ctx,
                         std::vector<struct scope> *scopes, 
                         struct ast_node *curr) {
-
   scopes->push_back({ });
 
   auto last_arena_save = ctx->arena->save();
