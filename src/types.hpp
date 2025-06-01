@@ -13,27 +13,32 @@
 #define UNSIGNED_FLAG 0x00'02'00'00
 #define LONG_FLAG     0x00'04'00'00
 #define SHORT_FLAG    0x00'08'00'00
-#define LONGLONG_FLAG 0x01'00'00'00 // Not directly used
+#define LONGLONG_FLAG 0x00'10'00'00 // Not directly used
 
-#define TO_SIGNED(type)                             \
-  (((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
-    ? TYPE_NONE                                     \
-    : (type) + SIGNED_FLAG)                         
+#define TO_SIGNED(type)                                          \
+  ((enum types)(((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
+    ? TYPE_NONE                                                  \
+    : (type) + SIGNED_FLAG))                         
 
-#define TO_UNSIGNED(type)                           \
-  (((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
-    ? TYPE_NONE                                     \
-    : (type) + UNSIGNED_FLAG)                         
+#define TO_UNSIGNED(type)                                        \
+  ((enum types)(((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
+    ? TYPE_NONE                                                  \
+    : (type) + UNSIGNED_FLAG))                         
 
-#define TO_LONG(type)                                                     \
-  (((type) & LONG_FLAG || (type) & SHORT_FLAG || (type) & LONGLONG_FLAG)  \
-    ? TYPE_NONE                                                           \
-    : (type) + LONG_FLAG)                         
+#define TO_LONG(type)                                            \
+  ((enum types)(((type) & LONG_FLAG || (type) & SHORT_FLAG ||    \
+                 (type) & LONGLONG_FLAG)                         \
+    ? TYPE_NONE                                                  \
+    : (type) + LONG_FLAG))                         
 
-#define TO_SHORT(type)                                                    \
-  (((type) & LONG_FLAG || (type) & SHORT_FLAG || (type) & LONGLONG_FLAG)  \
-    ? TYPE_NONE                                                           \
-    : (type) + SHORT_FLAG)                         
+#define TO_SHORT(type)                                           \
+  ((enum types)(((type) & LONG_FLAG || (type) & SHORT_FLAG ||    \
+                 (type) & LONGLONG_FLAG)                         \
+    ? TYPE_NONE                                                  \
+    : (type) + SHORT_FLAG))                         
+
+#define MERGE_TYPE(flags, type) \
+  ((enum types)(((flags) & 0x0000ffff) ? TYPE_NONE : (flags) | (type)))
 
 enum types : uint32_t {
   TYPE_NONE = 0,
@@ -134,6 +139,14 @@ static const cstr_umap<uint32_t> primitives = {
   TO_MAP("struct", TYPE_NONE),
   TO_MAP("union", TYPE_NONE),
   TO_MAP("enum", TYPE_NONE),
+
+  TO_MAP("const", TYPE_NONE),
+  TO_MAP("volatile", TYPE_NONE),
+
+  TO_MAP("auto", TYPE_NONE),
+  TO_MAP("static", TYPE_NONE),
+  TO_MAP("register", TYPE_NONE),
+  TO_MAP("extern", TYPE_NONE),
 
   TO_MAP("float", TYPE_FLOAT),
   TO_MAP("double", TYPE_DOUBLE),

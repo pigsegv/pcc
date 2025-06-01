@@ -33,13 +33,15 @@ static void parse_block(struct context *ctx,
     switch (tok.type) {
       case ID: {
         if (primitives.contains(TO_STD_SV(tok.str)) || 
-            find_type_in_scope(&tok.str, &ctx->scopes)) {
+            find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
           parse_decl(ctx, last_child);
         } 
       } break;
-
+      
+      case END_OF_FILE:
+        std::exit(0);
       default:
-        break;
+        ctx->lexer->get_tok();
     }
 
     last_arena_save = ctx->arena->save();

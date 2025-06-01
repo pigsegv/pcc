@@ -35,15 +35,17 @@ struct context {
   std::vector<struct scope> scopes;
 };
 
-static inline bool find_type_in_scope(const struct string_view *sv, 
-                                      const std::vector<struct scope> *scopes) {
+static inline struct type_spec *
+find_type_in_scope(const struct string_view *sv, 
+                   const std::vector<struct scope> *scopes) {
   for (auto &scope : *scopes) {
-    if (scope.types.contains(TO_STD_SV(*sv))) {
-      return true;
+    if (auto s = scope.types.find(TO_STD_SV(*sv));
+        s != scope.types.end()) {
+      return s->second;
     }
   }
 
-  return false;
+  return nullptr;
 }
 
 #endif // PCC_CONTEXT_H
