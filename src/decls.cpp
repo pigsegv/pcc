@@ -124,13 +124,14 @@ static struct type_spec *parse_var(struct context *ctx,
   } 
 
   if (type == nullptr) {
-    printf("%s\n", tok.str.view);
     type = find_type_in_scope(&tok.str, &ctx->scopes);
   }
 
-  assert(type != nullptr);
+  if (type == nullptr) {
+    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                 "type %.*s not defined", (int)tok.str.len, tok.str.view);
+  }
 
-  printf("%d\n", type->type);
   return type;
 }
 
@@ -147,7 +148,7 @@ void parse_decl(struct context *ctx, struct ast_node *curr) {
      *   record
      *   enum
      */
-    assert(0 && "TODO: Handle non-primitive types");
+    assert(0 && "TODO: Handle record types");
 
   } else if (std::strcmp(tok.str.view, "typedef") == 0) {
     assert(0 && "TODO: Handle typedefs");

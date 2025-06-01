@@ -37,7 +37,7 @@ static void parse_block(struct context *ctx,
         if (primitives.contains(TO_STD_SV(tok.str)) || 
             find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
           parse_decl(ctx, last_child);
-        } 
+        }
       } break;
       
       case END_OF_FILE:

@@ -144,6 +144,8 @@ static const cstr_umap<uint32_t> primitives = {
   TO_MAP("union", TYPE_NONE),
   TO_MAP("enum", TYPE_NONE),
 
+  TO_MAP("typedef", TYPE_NONE),
+
   TO_MAP("const", TYPE_NONE),
   TO_MAP("volatile", TYPE_NONE),
 
