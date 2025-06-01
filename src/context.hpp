@@ -30,7 +30,7 @@ struct context {
   class lexer *lexer;
 
   class arena *arena;
-  class arena *scratch;
+  class arena scratch;
 
   std::vector<struct scope> scopes;
 };

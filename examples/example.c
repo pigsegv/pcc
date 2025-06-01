@@ -1,7 +1,7 @@
 int main(void) {
-  int a;
-  
-  a = 10;
+  long int long unsigned volatile a;
+
+  lol a;
 
   printf("%d\n", a);
   return 0;

@@ -17,28 +17,30 @@
 
 #define TO_SIGNED(type)                                          \
   ((enum types)(((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
-    ? TYPE_NONE                                                  \
+    ? TYPE_INVALID                                               \
     : (type) + SIGNED_FLAG))                         
 
 #define TO_UNSIGNED(type)                                        \
   ((enum types)(((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
-    ? TYPE_NONE                                                  \
+    ? TYPE_INVALID                                               \
     : (type) + UNSIGNED_FLAG))                         
 
 #define TO_LONG(type)                                            \
-  ((enum types)(((type) & LONG_FLAG || (type) & SHORT_FLAG ||    \
+  ((enum types)(((type) & SHORT_FLAG ||                          \
                  (type) & LONGLONG_FLAG)                         \
-    ? TYPE_NONE                                                  \
+    ? TYPE_INVALID                                               \
     : (type) + LONG_FLAG))                         
 
 #define TO_SHORT(type)                                           \
   ((enum types)(((type) & LONG_FLAG || (type) & SHORT_FLAG ||    \
                  (type) & LONGLONG_FLAG)                         \
-    ? TYPE_NONE                                                  \
+    ? TYPE_INVALID                                               \
     : (type) + SHORT_FLAG))                         
 
-#define MERGE_TYPE(flags, type) \
-  ((enum types)(((flags) & 0x0000ffff) ? TYPE_NONE : (flags) | (type)))
+#define MERGE_TYPE(flags, type)                                  \
+  ((enum types)(((flags) & 0x0000ffff)                           \
+    ? TYPE_INVALID                                               \
+    : (flags) | (type)))
 
 enum types : uint32_t {
   TYPE_NONE = 0,
@@ -78,6 +80,8 @@ enum types : uint32_t {
   TYPE_USHORT      = TYPE_UINT + SHORT_FLAG,
   TYPE_ULONG       = TYPE_UINT + LONG_FLAG,
   TYPE_ULONGLONG   = TYPE_UINT + LONGLONG_FLAG,
+
+  TYPE_INVALID = 0xffff0000, // Guaranteed not to be valid, hopefully
 };
 
 

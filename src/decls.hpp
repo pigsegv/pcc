@@ -13,6 +13,8 @@ enum decl_types {
   DECL_TYPE_FIELD,
   DECL_TYPE_ENUM,
   DECL_TYPE_VAR,
+  DECL_TYPE_LABEL,
+  DECL_TYPE_CASE,
 };
 
 enum storage_classes {
@@ -32,8 +34,8 @@ enum record_types {
 enum qualifiers {
   QUAL_NONE = 0,
 
-  QUAL_VOLATILE,
-  QUAL_CONST,
+  QUAL_VOLATILE = 0x1,
+  QUAL_CONST    = 0x2,
 };
 
 struct func_decl {
@@ -49,7 +51,7 @@ struct decl {
   enum decl_types type;
   const char *name;
 
-  enum qualifiers qual;
+  enum qualifiers quals;
   enum storage_classes storage;
 
   union {
