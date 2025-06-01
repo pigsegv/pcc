@@ -58,4 +58,6 @@ struct decl {
   };
 };
 
+void parse_decl(struct context *ctx, struct ast_node *curr);
+
 #endif // PCC_DECLS_H

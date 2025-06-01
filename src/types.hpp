@@ -4,11 +4,39 @@
 #define PCC_TYPES_H
 
 #include "string_view.hpp"
+#include "error.hpp"
 
 #include <utility>
+#include <stdint.h>
 
-enum types : int {
-  TYPE_NONE,
+#define SIGNED_FLAG   0x00'01'00'00
+#define UNSIGNED_FLAG 0x00'02'00'00
+#define LONG_FLAG     0x00'04'00'00
+#define SHORT_FLAG    0x00'08'00'00
+#define LONGLONG_FLAG 0x01'00'00'00 // Not directly used
+
+#define TO_SIGNED(type)                             \
+  (((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
+    ? TYPE_NONE                                     \
+    : (type) + SIGNED_FLAG)                         
+
+#define TO_UNSIGNED(type)                           \
+  (((type) & SIGNED_FLAG || (type) & UNSIGNED_FLAG) \
+    ? TYPE_NONE                                     \
+    : (type) + UNSIGNED_FLAG)                         
+
+#define TO_LONG(type)                                                     \
+  (((type) & LONG_FLAG || (type) & SHORT_FLAG || (type) & LONGLONG_FLAG)  \
+    ? TYPE_NONE                                                           \
+    : (type) + LONG_FLAG)                         
+
+#define TO_SHORT(type)                                                    \
+  (((type) & LONG_FLAG || (type) & SHORT_FLAG || (type) & LONGLONG_FLAG)  \
+    ? TYPE_NONE                                                           \
+    : (type) + SHORT_FLAG)                         
+
+enum types : uint32_t {
+  TYPE_NONE = 0,
 
   TYPE_PTR,
   TYPE_ARRAY,
@@ -20,39 +48,34 @@ enum types : int {
   TYPE_FUNC,
 
   TYPE_CHAR,
-  TYPE_SCHAR,
-  TYPE_UCHAR,
-  TYPE_SHORT,
-  TYPE_USHORT,
   TYPE_INT,
-  TYPE_UINT,
-  TYPE_LONG,
-  TYPE_ULONG,
-  TYPE_LONGLONG,
-  TYPE_ULONGLONG,
   TYPE_FLOAT,
   TYPE_DOUBLE,
-  TYPE_LONGDOUBLE,
 
-  TYPE_VARIADIC,
   TYPE_VOID,
+  TYPE_VARIADIC,
 
-  // Incomplete types
-  TYPE_INC_SIGNED,
-  TYPE_INC_UNSIGNED,
+  TYPE_SCHAR = TYPE_CHAR + SIGNED_FLAG,
+  TYPE_SINT  = TYPE_INT + SIGNED_FLAG,
 
-  TYPE_INC_SHORT,
-  TYPE_INC_LONG,
-  TYPE_INC_LONGLONG,
+  TYPE_UCHAR = TYPE_CHAR + UNSIGNED_FLAG,
+  TYPE_UINT  = TYPE_INT + UNSIGNED_FLAG,
 
-  TYPE_INC_SSHORT,
-  TYPE_INC_SLONG,
-  TYPE_INC_SLONGLONG,
+  TYPE_SHORT      = TYPE_INT + SHORT_FLAG,
+  TYPE_LONG       = TYPE_INT + LONG_FLAG,
+  TYPE_LONGLONG   = TYPE_INT + LONGLONG_FLAG,
+  TYPE_LONGDOUBLE = TYPE_DOUBLE + LONG_FLAG,
 
-  TYPE_INC_USHORT,
-  TYPE_INC_ULONG,
-  TYPE_INC_ULONGLONG,
+  TYPE_SSHORT      = TYPE_SINT + SHORT_FLAG,
+  TYPE_SLONG       = TYPE_SINT + LONG_FLAG,
+  TYPE_SLONGLONG   = TYPE_SINT + LONGLONG_FLAG,
+
+  TYPE_USHORT      = TYPE_UINT + SHORT_FLAG,
+  TYPE_ULONG       = TYPE_UINT + LONG_FLAG,
+  TYPE_ULONGLONG   = TYPE_UINT + LONGLONG_FLAG,
 };
+
+
 
 struct pointer {
   struct type_spec *type;
@@ -98,15 +121,15 @@ struct type_spec {
   )
 
 // I should probably give a better name to this
-static const cstr_umap<enum types> primitives = {
+static const cstr_umap<uint32_t> primitives = {
   TO_MAP("int", TYPE_INT),
   TO_MAP("char", TYPE_CHAR),
 
-  TO_MAP("long", TYPE_INC_LONG),
-  TO_MAP("short", TYPE_INC_SHORT),
+  TO_MAP("long", LONG_FLAG),
+  TO_MAP("short", SHORT_FLAG),
 
-  TO_MAP("signed", TYPE_INC_SIGNED),
-  TO_MAP("unsigned", TYPE_INC_UNSIGNED),
+  TO_MAP("signed", SIGNED_FLAG),
+  TO_MAP("unsigned", UNSIGNED_FLAG),
 
   TO_MAP("struct", TYPE_NONE),
   TO_MAP("union", TYPE_NONE),
