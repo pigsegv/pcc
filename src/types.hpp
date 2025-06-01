@@ -34,15 +34,24 @@ enum types : int {
   TYPE_DOUBLE,
   TYPE_LONGDOUBLE,
 
-  // These are to make sure that both signed and unsigned don't appear
-  // in the same declaration.
-  TYPE_SSHORT,
-  TYPE_SINT,
-  TYPE_SLONG,
-  TYPE_SLONGLONG,
-
   TYPE_VARIADIC,
   TYPE_VOID,
+
+  // Incomplete types
+  TYPE_INC_SIGNED,
+  TYPE_INC_UNSIGNED,
+
+  TYPE_INC_SHORT,
+  TYPE_INC_LONG,
+  TYPE_INC_LONGLONG,
+
+  TYPE_INC_SSHORT,
+  TYPE_INC_SLONG,
+  TYPE_INC_SLONGLONG,
+
+  TYPE_INC_USHORT,
+  TYPE_INC_ULONG,
+  TYPE_INC_ULONGLONG,
 };
 
 struct pointer {
@@ -62,6 +71,7 @@ struct bitfield {
 
 struct function {
   struct type_spec *args;
+  struct string_view *arg_names;
   uint64_t num_args;
   bool variadic;
 
@@ -89,13 +99,14 @@ struct type_spec {
 
 // I should probably give a better name to this
 static const cstr_umap<enum types> primitives = {
-  TO_MAP("short", TYPE_SHORT),
   TO_MAP("int", TYPE_INT),
   TO_MAP("char", TYPE_CHAR),
-  TO_MAP("long", TYPE_NONE),
 
-  TO_MAP("signed", TYPE_NONE),
-  TO_MAP("unsigned", TYPE_NONE),
+  TO_MAP("long", TYPE_INC_LONG),
+  TO_MAP("short", TYPE_INC_SHORT),
+
+  TO_MAP("signed", TYPE_INC_SIGNED),
+  TO_MAP("unsigned", TYPE_INC_UNSIGNED),
 
   TO_MAP("struct", TYPE_NONE),
   TO_MAP("union", TYPE_NONE),

@@ -14,7 +14,7 @@
 struct context {
   context(const char *filepath, const char *src, class lexer *lexer,
           class arena *arena) 
-    : filepath(filepath), src(src), lexer(lexer), arena(arena) { }
+    : filepath(filepath), src(src), lexer(lexer), arena(arena), scratch() { }
   
   uint64_t id_counter = 0;
 
@@ -22,7 +22,9 @@ struct context {
   const char *src;
 
   class lexer *lexer;
+
   class arena *arena;
+  class arena *scratch;
 };
 
 #endif // PCC_CONTEXT_H

@@ -30,22 +30,81 @@ static bool find_type_in_scope(const struct string_view *sv,
   return false;
 }
 
+static enum types to_long(enum types type) {
+  switch (type) {
+    case TYPE_NONE:
+      return TYPE_INC_LONG;
+
+    case TYPE_INC_SIGNED:
+      return TYPE_INC_SLONG;
+  case TYPE_INC_UNSIGNED:
+      return TYPE_INC_ULONG;
+
+    case TYPE_INC_LONG:
+      return TYPE_INC_LONGLONG;
+    case TYPE_INC_SLONG:
+      return TYPE_INC_SLONGLONG;
+    case TYPE_INC_ULONG:
+      return TYPE_INC_ULONGLONG;
+
+    case TYPE_INT:
+      return TYPE_INC_LONG;
+    case TYPE_LONG:
+      return TYPE_INC_LONGLONG;
+    case TYPE_UINT:
+      return TYPE_INC_ULONG;
+    case TYPE_ULONG:
+      return TYPE_INC_ULONGLONG;
+
+    case TYPE_DOUBLE:
+      return TYPE_LONGDOUBLE;
+
+    default:
+      return TYPE_NONE;
+  }
+}
+
+static enum types to_short(enum types type) {
+  switch (type) {
+    case TYPE_NONE:
+      return TYPE_INC_SHORT;
+
+    case TYPE_INC_SIGNED:
+      return TYPE_INC_SSHORT;
+    case TYPE_INC_UNSIGNED:
+      return TYPE_INC_USHORT;
+
+    case TYPE_INT:
+      return TYPE_INC_SHORT;
+    case TYPE_UINT:
+      return TYPE_INC_USHORT;
+
+    default:
+      return TYPE_NONE;
+  }
+}
+
 static enum types to_unsigned(enum types type) {
   switch (type) {
     case TYPE_NONE:
-      return TYPE_UINT;
+      return TYPE_INC_UNSIGNED;
+
+    case TYPE_INC_SHORT:
+      return TYPE_INC_USHORT;
+    case TYPE_INC_LONG:
+      return TYPE_INC_ULONG;
+    case TYPE_INC_LONGLONG:
+      return TYPE_INC_ULONGLONG;
 
     case TYPE_CHAR:
       return TYPE_UCHAR;
 
-    case TYPE_SHORT:
-      return TYPE_USHORT;
     case TYPE_INT:
-      return TYPE_UINT;
+      return TYPE_INC_UNSIGNED;
     case TYPE_LONG:
-      return TYPE_ULONG;
+      return TYPE_INC_ULONG;
     case TYPE_LONGLONG:
-      return TYPE_ULONGLONG;
+      return TYPE_INC_ULONGLONG;
 
     default:
       return TYPE_NONE;
@@ -55,53 +114,80 @@ static enum types to_unsigned(enum types type) {
 static enum types to_signed(enum types type) {
   switch (type) {
     case TYPE_NONE:
-      return TYPE_SINT;
+      return TYPE_INC_SIGNED;
+
+    case TYPE_INC_SHORT:
+      return TYPE_INC_SSHORT;
+    case TYPE_INC_LONG:
+      return TYPE_INC_SLONG;
+    case TYPE_INC_LONGLONG:
+      return TYPE_INC_SLONGLONG;
 
     case TYPE_CHAR:
       return TYPE_SCHAR;
 
-    case TYPE_SHORT:
-      return TYPE_SSHORT;
     case TYPE_INT:
-      return TYPE_SINT;
+      return TYPE_INC_SIGNED;
     case TYPE_LONG:
-      return TYPE_SLONG;
+      return TYPE_INC_SLONG;
     case TYPE_LONGLONG:
-      return TYPE_SLONGLONG;
+      return TYPE_INC_SLONGLONG;
 
     default:
       return TYPE_NONE;
   }
 }
 
-static enum types strip_signed(enum types type) {
+static enum types resolve_type(enum types type) {
   switch (type) {
-    case TYPE_SSHORT:
-      return TYPE_SHORT;
-    case TYPE_SINT:
+    case TYPE_INC_SIGNED:
       return TYPE_INT;
-    case TYPE_SLONG:
+    case TYPE_INC_UNSIGNED:
+      return TYPE_UINT;
+
+    case TYPE_INC_SHORT: case TYPE_INC_SSHORT:
+      return TYPE_SHORT;
+    case TYPE_INC_LONG: case TYPE_INC_SLONG:
       return TYPE_LONG;
-    case TYPE_SLONGLONG:
+    case TYPE_INC_LONGLONG: case TYPE_INC_SLONGLONG:
       return TYPE_LONGLONG;
 
+    case TYPE_INC_USHORT:
+      return TYPE_USHORT;
+    case TYPE_INC_ULONG:
+      return TYPE_ULONG;
+    case TYPE_INC_ULONGLONG:
+      return TYPE_ULONGLONG;
+    
     default:
       return type;
   }
 }
 
-static void parse_type(struct context *ctx,
-                       std::vector<struct scope> *scopes, 
-                       struct ast_node *curr, 
-                       struct type_spec *type) {
+static struct type_spec parse_var(struct context *ctx,
+                                  std::vector<struct scope> *scopes, 
+                                  struct ast_node *curr) {
+  struct type_spec type = {
+    .type = TYPE_NONE,
+  };
 
+  struct token tok = ctx->lexer->get_tok();
+  if (auto s = primitives.find(TO_STD_SV(tok.str));
+      s != primitives.end()) {
+    bool contains = true;
+    while (contains) {
+
+      tok = ctx->lexer->get_tok();
+      s = primitives.find(TO_STD_SV(tok.str));
+      contains = s != primitives.end();
+    }
+  }
 }
 
 static void parse_decl(struct context *ctx,
                        std::vector<struct scope> *scopes, 
                        struct ast_node *curr) {
-  struct token tok = ctx->lexer->get_tok();
-  struct token peeked = ctx->lexer->peek();
+  struct token tok = ctx->lexer->peek();
 
   if (std::strcmp(tok.str.view, "struct") == 0 || 
       std::strcmp(tok.str.view, "union") == 0 || 
@@ -124,9 +210,9 @@ static void parse_decl(struct context *ctx,
    *   variable
    *   function
    */
-  struct type_spec t;
-  parse_type(ctx, scopes, curr, &t);
+  struct type_spec t = parse_var(ctx, scopes, curr);
 }
+
 
 static void parse_block(struct context *ctx,
                         std::vector<struct scope> *scopes, 
