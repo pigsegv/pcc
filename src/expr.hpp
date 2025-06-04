@@ -70,7 +70,17 @@ enum operators {
   OP_TERNARY,
 };
 
+enum expr_types {
+  EXPR_NONE,
+
+  EXPR_SIMPLE_ID,
+  EXPR_SIMPLE_LIT,
+  EXPR_COMP,
+};
+
 struct expr {
+  enum expr_types type;
+
   bool is_lvalue;
   enum operators op;
 
@@ -90,5 +100,7 @@ struct expr {
     struct string_view identifier;
   };
 };
+
+struct expr *parse_expr(struct context *ctx, class arena *arena);
 
 #endif // PCC_EXPR_H

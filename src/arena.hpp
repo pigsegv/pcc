@@ -1,8 +1,6 @@
 #ifndef UTIL_ARENA_H
 #define UTIL_ARENA_H
 
-#include "constraints.hpp"
-
 #include <new>
 #include <cstdlib>
 #include <stddef.h>

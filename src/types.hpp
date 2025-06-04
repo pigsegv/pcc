@@ -5,6 +5,7 @@
 
 #include "string_view.hpp"
 #include "error.hpp"
+#include "context.hpp"
 
 #include <utility>
 #include <stdint.h>
@@ -84,8 +85,6 @@ enum types : uint32_t {
   TYPE_INVALID = 0xffff0000, // Guaranteed not to be valid, hopefully
 };
 
-
-
 struct pointer {
   struct type_spec *type;
   uint32_t level;
@@ -129,8 +128,7 @@ struct type_spec {
     type_enum                           \
   )
 
-// I should probably give a better name to this
-static const cstr_umap<uint32_t> primitives = {
+static const cstr_umap<uint32_t> keywords = {
   TO_MAP("int", TYPE_INT),
   TO_MAP("char", TYPE_CHAR),
 

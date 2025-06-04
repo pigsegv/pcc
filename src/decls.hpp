@@ -4,6 +4,7 @@
 #define PCC_DECLS_H
 
 #include "types.hpp"
+#include "context.hpp"
 
 enum decl_types {
   DECL_TYPE_FUNC,

@@ -13,7 +13,7 @@ void report_error(const char *path, const char *start,
   const char *line_start = nullptr;
   uint32_t line_count = 1;
   
-  while (tmp > start) {
+  while (tmp >= start) {
     if (*tmp == '\n') {
       if (line_start == nullptr) line_start = tmp + 1;
       line_count++;

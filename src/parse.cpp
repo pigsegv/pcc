@@ -34,9 +34,11 @@ static void parse_block(struct context *ctx,
 
     switch (tok.type) {
       case ID: {
-        if (primitives.contains(TO_STD_SV(tok.str)) || 
+        if (keywords.contains(TO_STD_SV(tok.str)) || 
             find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
           parse_decl(ctx, last_child);
+        } else {
+          ctx->lexer->get_tok();
         }
       } break;
       
