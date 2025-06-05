@@ -75,6 +75,10 @@ struct string_view get_string(sv_map &strings_map, const char *start, char q,
         }
 
         char *tmp = (char *)strings->alloc(scratch.size() + 1);
+        assert (tmp != nullptr);  
+
+        // TODO: Allocate memory off the arena in case of large strings
+
         sv.len = scratch.size();
         for (uint64_t i = 0; i < scratch.size(); i++) {
           tmp[i] = scratch[i];
@@ -150,6 +154,8 @@ struct string_view get_id(sv_map &strings_map, const char *start,
       }
 
       char *tmp = (char *)strings->alloc(scratch.size() + 1);
+      assert(tmp != nullptr);
+
       for (uint64_t i = 0; i < scratch.size(); i++) {
         tmp[i] = scratch[i];
       }

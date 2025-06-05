@@ -19,8 +19,7 @@ static struct type_spec *parse_var(struct context *ctx,
   auto [type, storage, quals] = parse_base_type(ctx);
 
   struct string_view ident;
-  parse_type_expr(ctx, &ctx->scratch, type, &ident);
-  return type;
+  return parse_type_expr(ctx, type, &ident);
 }
 
 void parse_decl(struct context *ctx, struct ast_node *curr) {

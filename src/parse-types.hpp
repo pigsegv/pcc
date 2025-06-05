@@ -12,8 +12,9 @@
 std::tuple<struct type_spec *, enum storage_classes, enum qualifiers> 
 parse_base_type(struct context *ctx);
 
-void parse_type_expr(struct context *ctx, class arena *arena,
-                     struct type_spec *base_type,
-                     struct string_view *identifier);
+// Takes ownership of `base_type`
+struct type_spec *parse_type_expr(struct context *ctx,
+                                  struct type_spec *base_type,
+                                  struct string_view *identifier);
 
 #endif // PCC_PARSE_TYPES_H

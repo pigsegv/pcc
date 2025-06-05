@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <limits.h>
 
 int main(int argc, char **argv) {
   // TODO: Use a more robust arguments parser

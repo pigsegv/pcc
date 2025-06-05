@@ -1,8 +1,8 @@
 OBJ := $(OBJ)/src
 
-CFLAGS += -std=gnu++26 -Wall -Wextra -ggdb3 -O3 -fsanitize=address
-CFLAGS += -Wno-missing-field-initializers -fno-exceptions
-LDFLAGS += -fsanitize=address -flto
+CFLAGS += -std=gnu++26 -Wall -Wextra -ggdb3 -O3
+CFLAGS += -Wno-missing-field-initializers -fno-exceptions -fsanitize=undefined
+LDFLAGS += -fsanitize=address -flto -fsanitize=undefined
 
 SRCS := $(shell find -type f -name "*.cpp" -printf "%P\n")
 OBJS := $(patsubst %.cpp, $(OBJ)/%.o, $(SRCS))

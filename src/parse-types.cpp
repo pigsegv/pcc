@@ -11,7 +11,7 @@ parse_base_type(struct context *ctx) {
   enum storage_classes storage = CLASS_NONE;
   enum qualifiers qual = QUAL_NONE;
 
-  struct token tok = ctx->lexer->get_tok();
+  struct token tok = ctx->lexer->peek();
   
   // get types, qualifiers and storage classes
   if (auto s = keywords.find(TO_STD_SV(tok.str));
@@ -21,9 +21,11 @@ parse_base_type(struct context *ctx) {
       .type = TYPE_NONE,
     };
 
-    for (; s != keywords.end(); 
-         tok = ctx->lexer->get_tok(), 
-         s = keywords.find(TO_STD_SV(tok.str))) {
+    for (; tok.type == ID && s != keywords.end(); 
+         tok = ctx->lexer->peek(), 
+         s = tok.type == ID 
+           ? keywords.find(TO_STD_SV(tok.str)) : keywords.end()) {
+      ctx->lexer->get_tok();
       switch (s->second) {
         case SIGNED_FLAG:
           tmp.type = TO_SIGNED(tmp.type);
@@ -128,38 +130,51 @@ parse_base_type(struct context *ctx) {
   return { type, storage, qual };
 }
 
-void parse_type_expr(struct context *ctx, class arena *arena,
-                     struct type_spec *base_type,
-                     struct string_view *identifier) {
-  struct type_spec *type = new (arena->alloc(sizeof(*type))) 
-                             (struct type_spec) {
-                               .type = TYPE_NONE,
-                             };
+static uint32_t get_ptr_level(struct context *ctx) {
+  uint32_t level = 0;
 
-  for (auto tok = ctx->lexer->get_tok(); ; tok = ctx->lexer->get_tok()) {
-    switch (tok.type) {
-      case CHARLIT: {
-        switch (tok.charlit) {
-          case '*': {
-            if (type->type == TYPE_PTR) {
-              type->ptr.level++;
+  for (auto tok = ctx->lexer->peek();
+       tok.type == CHARLIT && tok.charlit == '*';
+       tok = ctx->lexer->peek()) {
+    level++;
+    ctx->lexer->get_tok();
+  }
 
-            } else if (type->type == TYPE_NONE) {
-              type->type = TYPE_PTR;
-              type->ptr.level = 1;
-            } else {
-              EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location,
-                           "Invalid type declaration\n");
-            }
-          } break;
+  return level;
+}
 
-          case '[':
-            assert(0 && "TODO: Parse array declaration"); break;
-          case '(':
+struct type_spec *parse_type_expr(struct context *ctx,
+                                  struct type_spec *base_type,
+                                  struct string_view *identifier) {
+  auto arena_save = ctx->arena->save();
+  struct type_spec *type = new (ctx->arena->alloc(sizeof(*type))) 
+                             struct type_spec;
 
-        }
-      } break;
+  struct token tok = ctx->lexer->peek();
+  if (tok.type == ID) {
+    printf("%s\n", tok.str.view);
+  }
+  if (tok.type == CHARLIT) {
+    switch (tok.charlit) {
+      case '*': 
+        type->type = TYPE_PTR;
+        type->ptr.level = get_ptr_level(ctx);
+        type->ptr.type = base_type;
+        break;
 
+      case '(':  // This will be handled in the next step
+        ctx->lexer->get_tok();
+        break;
+
+      case ';':
+        ctx->arena->restore(arena_save);
+        return nullptr;
     }
   }
+
+  if (type->type == TYPE_PTR) {
+    printf("%u\n", type->ptr.level);
+  }
+
+  return type;
 }
