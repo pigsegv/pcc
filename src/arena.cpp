@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <assert.h>
+#include <cstddef>
 
 size_t arena::get_block_size(void) {
   return m_capacity;
@@ -101,9 +102,12 @@ void *arena::alloc(size_t size) {
     std::abort();
   }
 
-  if (size > m_capacity) return nullptr;
+  size_t padding = (uintptr_t)(m_data + m_allocated) % alignof(max_align_t);
+  padding = padding == 0 ? 0 : alignof(max_align_t) - padding;
 
-  if (m_allocated + size > m_capacity) {
+  if (size + padding > m_capacity) return nullptr;
+
+  if (m_allocated + size + padding > m_capacity) {
     if (m_next == nullptr) {
       m_next = new (m_block) arena(m_capacity);
     }
@@ -113,8 +117,9 @@ void *arena::alloc(size_t size) {
     return m_next->alloc(size);
 
   } else {
-    void *block = m_data + m_allocated;
-    m_allocated += size;
+    void *block = m_data + m_allocated + padding;
+    m_allocated += size + padding;
+
     return block;
   }
 }
