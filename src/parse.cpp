@@ -27,8 +27,6 @@ static void parse_block(struct context *ctx,
 
   struct ast_node *last_child = curr->child;
 
-  struct type_spec t = { .type = TYPE_VARIADIC };
-  ctx->scopes.back().types.insert({"lol", &t});
   for (;;) {
     struct token tok = ctx->lexer->peek();
 

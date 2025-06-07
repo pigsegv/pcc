@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <cstdlib>
 #include <tuple>
+#include <optional>
 
 static struct type_spec *parse_var(struct context *ctx,
                                   struct ast_node *curr) {
@@ -18,8 +19,8 @@ static struct type_spec *parse_var(struct context *ctx,
   auto scratch_save = ctx->scratch.save();
   auto [type, storage, quals] = parse_base_type(ctx);
 
-  struct string_view ident;
-  return parse_type_expr(ctx, type, &ident);
+  std::optional<struct string_view> ident;
+  return std::get<0>(parse_type_expr(ctx, type, &ident));
 }
 
 void parse_decl(struct context *ctx, struct ast_node *curr) {

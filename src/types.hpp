@@ -138,6 +138,11 @@ static const cstr_umap<uint32_t> keywords = {
   TO_MAP("signed", SIGNED_FLAG),
   TO_MAP("unsigned", UNSIGNED_FLAG),
 
+  TO_MAP("float", TYPE_FLOAT),
+  TO_MAP("double", TYPE_DOUBLE),
+
+  TO_MAP("void", TYPE_VOID),
+
   TO_MAP("struct", TYPE_NONE),
   TO_MAP("union", TYPE_NONE),
   TO_MAP("enum", TYPE_NONE),
@@ -151,11 +156,6 @@ static const cstr_umap<uint32_t> keywords = {
   TO_MAP("static", TYPE_NONE),
   TO_MAP("register", TYPE_NONE),
   TO_MAP("extern", TYPE_NONE),
-
-  TO_MAP("float", TYPE_FLOAT),
-  TO_MAP("double", TYPE_DOUBLE),
-
-  TO_MAP("void", TYPE_VOID),
 };
 
 #endif // PCC_TYPES_H

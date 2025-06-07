@@ -1,10 +1,11 @@
-int printf(const char *, ...);
 
-int main(void) {
+int foo(static int a, int b);
+
+int main() {
 
   /* long int long unsigned volatile a; */
   static long double volatile b;
-  int ***a;
+  int foo;
 
   printf("%Lf\n", b);
   return 0;

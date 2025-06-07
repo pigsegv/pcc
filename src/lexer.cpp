@@ -380,6 +380,11 @@ Exit:
   return tok;
 }
 
+void lexer::backtrack(struct token *tok) {
+  m_peeked = *tok;
+  m_cursor = tok->location;
+}
+
 struct token lexer::peek(void) {
   if (m_peeked.has_value()) {
     return m_peeked.value();

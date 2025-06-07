@@ -130,12 +130,29 @@ parse_base_type(struct context *ctx) {
   return { type, storage, qual };
 }
 
+// Consumes all tokens until the end of the pointer declaration
 static uint32_t get_ptr_level(struct context *ctx) {
   uint32_t level = 0;
+  for (;;) {
+    auto tok = ctx->lexer->peek();
+    
+    if (tok.type == CHARLIT) {
+      switch (tok.charlit) {
+        case '*': break;
+        case ';': case '[': case ']': case '(': case ')':
+          return level;
 
-  for (auto tok = ctx->lexer->peek();
-       tok.type == CHARLIT && tok.charlit == '*';
-       tok = ctx->lexer->peek()) {
+        default:
+          EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                      "unexpected token: %c\n", tok.charlit);
+      }
+
+    } else {
+
+          ctx->lexer->get_tok();
+          return level;
+    }
+
     level++;
     ctx->lexer->get_tok();
   }
@@ -143,38 +160,190 @@ static uint32_t get_ptr_level(struct context *ctx) {
   return level;
 }
 
-struct type_spec *parse_type_expr(struct context *ctx,
-                                  struct type_spec *base_type,
-                                  struct string_view *identifier) {
-  auto arena_save = ctx->arena->save();
-  struct type_spec *type = new (ctx->arena->alloc(sizeof(*type))) 
-                             struct type_spec;
+struct function parse_func_args(struct context *ctx) {
+  struct token tok;
 
-  struct token tok = ctx->lexer->peek();
-  if (tok.type == ID) {
-    printf("%s\n", tok.str.view);
+  struct function func = { };
+  std::vector<std::pair<struct type_spec *, struct string_view>> args;
+  for (;;) {
+    tok = ctx->lexer->get_tok();
+
+    if (tok.type == CHARLIT && tok.charlit == ')') {
+      break;
+    }
+
+    auto [base_type, storage, _] = parse_base_type(ctx);
+    if (storage != CLASS_NONE) {
+      EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "Storage class specified for function argument");
+    }
+
+    std::optional<struct string_view> ident = std::nullopt;
+    struct type_spec *type = 
+      std::get<0>(parse_type_expr(ctx, base_type, &ident));
+
+    args.emplace_back(type, ident.value());
   }
+}
+
+std::tuple<struct type_spec *, struct type_spec *>
+parse_type_expr(struct context *ctx,
+                struct type_spec *base_type,
+                std::optional<struct string_view> *identifier) {
+  struct token tok; 
+
+  struct type_spec *ptr = nullptr;
+
+  tok = ctx->lexer->peek();
   if (tok.type == CHARLIT) {
     switch (tok.charlit) {
       case '*': 
-        type->type = TYPE_PTR;
-        type->ptr.level = get_ptr_level(ctx);
-        type->ptr.type = base_type;
+        ptr = new (ctx->arena->alloc(sizeof(*ptr))) (struct type_spec) {
+          .type = TYPE_PTR,
+          .ptr = {
+            .level = get_ptr_level(ctx),
+          },
+        };
         break;
 
       case '(':  // This will be handled in the next step
-        ctx->lexer->get_tok();
         break;
 
-      case ';':
-        ctx->arena->restore(arena_save);
-        return nullptr;
+      case ';': case ')':
+        return { nullptr, nullptr };
+
+      default:
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                     "unexpected token: %c\n", tok.charlit);
     }
   }
 
-  if (type->type == TYPE_PTR) {
-    printf("%u\n", type->ptr.level);
+  struct type_spec *body = nullptr;
+  struct type_spec *body_end = nullptr;
+  tok = ctx->lexer->peek();
+  if (tok.type == CHARLIT) {
+    switch (tok.charlit) {
+      case '(': {
+        ctx->lexer->get_tok();
+        std::tie(body, body_end) = parse_type_expr(ctx, nullptr, identifier);
+  
+        // Function type, or expression termination
+        if (body == nullptr) {
+          if (ctx->lexer->peek().type == CHARLIT) {
+            if (ctx->lexer->peek().charlit == ')') {
+              ctx->lexer->backtrack(&tok);
+
+            } else if (ctx->lexer->peek().charlit == ';') {
+              delete ptr;
+              return { nullptr, nullptr };
+
+            } else {
+              EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                          "unexpected token: %c\n", ctx->lexer->peek().charlit);
+            }
+          } else if (ctx->lexer->peek().type == ID || 
+                     ctx->lexer->peek().type == ELIPSES) {
+              ctx->lexer->backtrack(&tok);
+
+          } else {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                         "unexpected token");
+          }
+
+          printf("Function!\n");
+          goto Post;
+        }
+
+        ctx->lexer->get_tok_and_expect(CHARLIT, ')');
+      } break;
+    }
+
+  } else if (tok.type == ID) {
+    if (keywords.contains(TO_STD_SV(tok.str)) ||
+        find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
+      if (ptr != nullptr) {
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "unexpected symbol: %s\n", tok.str.view);
+      }
+
+      return { nullptr, nullptr };
+    }
+
+    if (identifier != nullptr) {
+      if (*identifier) {
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "unexpected symbol: %s\n", tok.str.view);
+      }
+
+      *identifier = tok.str;
+    }
+    
+    ctx->lexer->get_tok();
+
+  } else if (tok.type == ELIPSES) {
+    return { nullptr, nullptr };
+
+  } else {
+    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                 "unexpected token: %d\n", tok.type);
   }
 
-  return type;
+Post:
+  auto arena_save = ctx->arena->save();
+  struct type_spec *post = new (ctx->arena->alloc(sizeof(*post))) 
+                             (struct type_spec) {
+                               .type = TYPE_NONE,
+                             };
+  struct type_spec *post_end = post;
+
+  for (;;) {
+    tok = ctx->lexer->get_tok();
+
+    if (tok.type != CHARLIT) {
+      EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                  "unexpected token: %d\n", tok.type);
+    }
+
+    if (tok.charlit == ';' || tok.charlit == ',' || tok.charlit == ')' || 
+        tok.charlit == '=') {
+      ctx->lexer->backtrack(&tok);
+      break;
+    }
+
+    switch (tok.charlit) {
+      case '(': {
+        arena_save = ctx->arena->save();
+        *post_end = (struct type_spec) {
+          .type = TYPE_FUNC,
+          .func = parse_func_args(ctx),
+        };
+
+        post_end->func.ret = 
+          new (ctx->arena->alloc(sizeof(*post_end->func.ret))) 
+            (struct type_spec) {
+              .type = TYPE_NONE,
+            };
+
+        post_end = post_end->func.ret;
+
+      } break;
+
+      case '[':
+        assert(0 && "TODO: Implement support for arrays");
+
+      case ';':
+        break;
+
+      default:
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "unexpected token: %c\n", tok.charlit);
+    }
+  }
+
+  if (post_end->type == TYPE_NONE) {
+    ctx->arena->restore(arena_save);
+    post = nullptr;
+  }
+
+  return { ptr, nullptr };
 }

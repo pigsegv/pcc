@@ -29,6 +29,8 @@ public:
   struct token get_tok(void);
   struct token get_tok_and_expect(int type, ...);
 
+  void backtrack(struct token *tok);
+
   struct token peek(void); // TODO
 
   const char *get_filepath(void) { return m_filepath; }

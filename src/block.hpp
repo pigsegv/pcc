@@ -13,7 +13,6 @@ enum block_types {
   BLOCK_FUNC,
 
   BLOCK_IF,
-  BLOCK_ELIF,
   BLOCK_ELSE,
 
   BLOCK_FOR,
