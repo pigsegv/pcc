@@ -18,7 +18,7 @@ parse_base_type(struct context *ctx);
  *
  * return:
  * 0 -> full type tree (ptr -> arr -> int)
- * 1 -> pointer to the leaf of the tree (int)
+ * 1 -> pointer to the leaf of the tree (arr)
  */
 std::tuple<struct type_spec *, struct type_spec *>
 parse_type_expr(struct context *ctx,

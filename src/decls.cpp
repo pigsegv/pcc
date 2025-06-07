@@ -11,16 +11,81 @@
 #include <cstdlib>
 #include <tuple>
 #include <optional>
+#include <string>
+
+static void print_types(struct type_spec *type, int indent) {
+  std::string ind(indent * 2, ' ');
+
+  for (;;) {
+    switch (type->type) {
+      case TYPE_PTR:
+        printf((ind + "pointer\n").c_str());
+        break;
+      case TYPE_ARRAY:
+        printf((ind + "array\n").c_str());
+        break;
+      case TYPE_FUNC:
+        printf((ind + "function:\n").c_str()); 
+        for (int i = 0; i < type->func.num_args; i++) {
+          print_types(type->func.args[i], indent + 1);
+        }
+        break;
+      case TYPE_INT:
+        printf((ind + "int\n").c_str());
+        break;
+      case TYPE_FLOAT:
+        printf((ind + "float\n").c_str());
+        break;
+
+      default:
+        printf((ind + "too lazy to add this\n").c_str());
+        break;
+    }
+
+    if (type->type != TYPE_PTR && type->type != TYPE_ARRAY &&
+        type->type != TYPE_FUNC) {
+      return;
+    }
+
+    switch (type->type) {
+      case TYPE_PTR:
+        type = type->ptr.type;
+        break;
+      case TYPE_ARRAY:
+        type = type->array.type;
+        break;
+      case TYPE_FUNC:
+        type = type->func.ret;
+        break;
+    }
+  }
+}
 
 static struct type_spec *parse_var(struct context *ctx,
-                                  struct ast_node *curr) {
+                                   struct ast_node *curr) {
   (void)curr;
 
-  auto scratch_save = ctx->scratch.save();
+  struct token tok = ctx->lexer->peek();
+  auto arena_save = ctx->arena->save();
   auto [type, storage, quals] = parse_base_type(ctx);
 
   std::optional<struct string_view> ident;
-  return std::get<0>(parse_type_expr(ctx, type, &ident));
+  
+  auto tmp = parse_type_expr(ctx, type, &ident);
+  ctx->lexer->get_tok_and_expect(CHARLIT, ';');
+  
+  // if (std::get<1>(tmp)->type == TYPE_FUNC) {
+    // ctx->arena->restore(arena_save);
+    // ctx->lexer->backtrack(&tok);
+// 
+    // return nullptr;
+  // }
+
+  auto next = std::get<0>(tmp);
+  printf("--------------------------------\n");
+  print_types(next, 0);
+
+  return std::get<1>(tmp);
 }
 
 void parse_decl(struct context *ctx, struct ast_node *curr) {

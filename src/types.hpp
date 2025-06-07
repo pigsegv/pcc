@@ -101,7 +101,7 @@ struct bitfield {
 };
 
 struct function {
-  struct type_spec *args;
+  struct type_spec **args;
   struct string_view *arg_names;
   uint64_t num_args;
   bool variadic;

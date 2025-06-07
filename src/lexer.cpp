@@ -381,7 +381,7 @@ Exit:
 }
 
 void lexer::backtrack(struct token *tok) {
-  m_peeked = *tok;
+  m_peeked = std::nullopt;
   m_cursor = tok->location;
 }
 

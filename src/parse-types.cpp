@@ -3,6 +3,8 @@
 #include "string_view.hpp"
 #include "context.hpp"
 
+#include <signal.h>
+#include <unistd.h>
 #include <tuple>
 
 std::tuple<struct type_spec *, enum storage_classes, enum qualifiers> 
@@ -12,6 +14,10 @@ parse_base_type(struct context *ctx) {
   enum qualifiers qual = QUAL_NONE;
 
   struct token tok = ctx->lexer->peek();
+  if (tok.type != ID) {
+    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                 "unexpected token %d\n", tok.type);
+  }
   
   // get types, qualifiers and storage classes
   if (auto s = keywords.find(TO_STD_SV(tok.str));
@@ -91,10 +97,6 @@ parse_base_type(struct context *ctx) {
           tmp.type = MERGE_TYPE(tmp.type, s->second);
       }
     }
-
-    if (storage == CLASS_NONE) {
-      storage = CLASS_AUTO;
-    }
   
     if ((tmp.type & 0x0000ffff) == 0) {
       tmp.type = MERGE_TYPE(tmp.type, TYPE_INT);
@@ -164,25 +166,92 @@ struct function parse_func_args(struct context *ctx) {
   struct token tok;
 
   struct function func = { };
-  std::vector<std::pair<struct type_spec *, struct string_view>> args;
+
+  std::vector<
+    std::pair<struct type_spec *, std::optional<struct string_view>>> args;
+
   for (;;) {
     tok = ctx->lexer->get_tok();
 
-    if (tok.type == CHARLIT && tok.charlit == ')') {
+    if (tok.type == ELIPSES) {
+      ctx->lexer->get_tok_and_expect(CHARLIT, ')');
+      struct type_spec *type = 
+        new (ctx->arena->alloc(sizeof(*type))) (struct type_spec) {
+          .type = TYPE_VARIADIC,
+        };
+
+      args.emplace_back(type, std::nullopt);
       break;
     }
 
+    ctx->lexer->backtrack(&tok);
     auto [base_type, storage, _] = parse_base_type(ctx);
+
     if (storage != CLASS_NONE) {
       EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
-                    "Storage class specified for function argument");
+                   "Storage class specified for function argument");
     }
 
     std::optional<struct string_view> ident = std::nullopt;
     struct type_spec *type = 
       std::get<0>(parse_type_expr(ctx, base_type, &ident));
 
-    args.emplace_back(type, ident.value());
+    args.emplace_back(type, ident);
+
+    tok = ctx->lexer->get_tok();
+    if (tok.type != CHARLIT || (tok.charlit != ')' && tok.charlit != ',')) {
+      EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                   "Expected ',' or ')', got token type: %d\n", tok.type);
+    }
+
+    if (tok.charlit == ')') {
+      break;
+    }
+  }
+
+  func.num_args = args.size();
+  if (args.back().first->type == TYPE_VARIADIC) {
+    func.variadic = true;
+    func.num_args--;
+  }
+
+  func.args = 
+    new (ctx->arena->alloc(func.num_args * sizeof(*func.args))) 
+      struct type_spec *[func.num_args];
+
+  func.arg_names = 
+    new (ctx->arena->alloc(func.num_args * sizeof(*func.arg_names))) 
+      struct string_view[func.num_args];
+
+
+  for (uint64_t i = 0; i < func.num_args; i++) {
+    func.args[i] = args[i].first;
+    assert(func.args[i]->type != TYPE_VARIADIC);
+
+    struct string_view tmp = { .view = nullptr, .len = 0};
+    
+    if (args[i].second) tmp = args[i].second.value();
+    func.arg_names[i] = tmp;
+  }
+
+  return func;
+}
+
+static void assign_type(struct type_spec *to, struct type_spec *what) {
+  switch (to->type) {
+    case TYPE_PTR:
+      to->ptr.type = what;
+      break;
+    case TYPE_ARRAY:
+      to->array.type = what;
+      break;
+
+    case TYPE_FUNC:
+      to->func.ret = what;
+      break;
+
+    default:
+      assert(0 && "unreachable");
   }
 }
 
@@ -210,7 +279,7 @@ parse_type_expr(struct context *ctx,
         break;
 
       case ';': case ')':
-        return { nullptr, nullptr };
+        return { base_type, base_type }; // returns nullptr on recursive calls
 
       default:
         EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
@@ -234,8 +303,7 @@ parse_type_expr(struct context *ctx,
               ctx->lexer->backtrack(&tok);
 
             } else if (ctx->lexer->peek().charlit == ';') {
-              delete ptr;
-              return { nullptr, nullptr };
+              return { base_type, base_type };
 
             } else {
               EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
@@ -250,7 +318,6 @@ parse_type_expr(struct context *ctx,
                          "unexpected token");
           }
 
-          printf("Function!\n");
           goto Post;
         }
 
@@ -294,11 +361,16 @@ Post:
                              (struct type_spec) {
                                .type = TYPE_NONE,
                              };
+  
+  struct type_spec *prev_post_end = nullptr;
   struct type_spec *post_end = post;
+  
+
+  struct type_spec *type = nullptr;
+  struct type_spec *type_end = nullptr;
 
   for (;;) {
     tok = ctx->lexer->get_tok();
-
     if (tok.type != CHARLIT) {
       EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
                   "unexpected token: %d\n", tok.type);
@@ -317,6 +389,8 @@ Post:
           .type = TYPE_FUNC,
           .func = parse_func_args(ctx),
         };
+
+        prev_post_end = post_end;
 
         post_end->func.ret = 
           new (ctx->arena->alloc(sizeof(*post_end->func.ret))) 
@@ -342,8 +416,47 @@ Post:
 
   if (post_end->type == TYPE_NONE) {
     ctx->arena->restore(arena_save);
-    post = nullptr;
+  }
+      
+  if (ptr) {
+    type = ptr;
+    type_end = ptr;
+
+    assign_type(type_end, base_type);
   }
 
-  return { ptr, nullptr };
+  if (prev_post_end) {
+    if (type == nullptr) {
+      type = post;
+      type_end = prev_post_end;
+
+      assign_type(type_end, base_type);
+
+
+    } else {
+      assign_type(prev_post_end, type);
+      type = post;
+    }
+  }
+
+  if (body) {
+    if (type == nullptr) {
+      type = body;
+      type_end = body_end;
+
+      assign_type(type_end, base_type);
+
+    } else {
+      assign_type(body_end, type);
+      type = body;
+    }
+  }
+
+  if (type == nullptr) {
+    type = base_type;
+    type_end = base_type;
+  }
+  
+
+  return { type, type_end };
 }

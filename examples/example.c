@@ -1,7 +1,9 @@
 
-int foo(static int a, int b);
+float foo(int a());
 
-int main() {
+// int *foo(int *(int a));
+
+int main(void) {
 
   /* long int long unsigned volatile a; */
   static long double volatile b;

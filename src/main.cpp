@@ -22,10 +22,11 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  class arena mem = arena();
+  class arena strings = arena();
+  class arena parse_arena = arena();
 
-  class lexer lexer(contents, argv[1], &mem);
-  parse(&lexer, &mem);
+  class lexer lexer(contents, argv[1], &strings);
+  parse(&lexer, &parse_arena);
 
   // for (struct token tok = lexer.get_tok(); 
       // tok.type != END_OF_FILE;
