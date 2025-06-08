@@ -150,8 +150,6 @@ static uint32_t get_ptr_level(struct context *ctx) {
       }
 
     } else {
-
-          ctx->lexer->get_tok();
           return level;
     }
 
@@ -234,6 +232,7 @@ struct function parse_func_args(struct context *ctx) {
     if (args[i].second) tmp = args[i].second.value();
     func.arg_names[i] = tmp;
   }
+
 
   return func;
 }
@@ -385,7 +384,6 @@ Post:
 
     switch (tok.charlit) {
       case '(': {
-        arena_save = ctx->arena->save();
         *post_end = (struct type_spec) {
           .type = TYPE_FUNC,
           .func = { },
@@ -400,6 +398,7 @@ Post:
 
         prev_post_end = post_end;
 
+        arena_save = ctx->arena->save();
         post_end->func.ret = 
           new (ctx->arena->alloc(sizeof(*post_end->func.ret))) 
             (struct type_spec) {

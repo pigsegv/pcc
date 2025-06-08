@@ -1,7 +1,8 @@
 
 float **(*foo)(int (*)());
+int (*(*foo)(void));
+int *foo(int *(int a));
 
-// int *foo(int *(int a));
 
 int main(void) {
 
