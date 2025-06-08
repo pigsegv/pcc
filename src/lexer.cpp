@@ -3,6 +3,7 @@
 #include "error.hpp"
 
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
 #include <cctype>
 #include <utility>
@@ -377,6 +378,11 @@ struct token lexer::get_tok_and_expect(int type, ...) {
 
 Exit:
   va_end(args);
+    
+  if (tok.type == PARSE_ERROR) {
+    std::exit(EXIT_FAILURE);
+  }
+
   return tok;
 }
 

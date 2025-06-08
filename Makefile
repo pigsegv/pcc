@@ -38,7 +38,7 @@ OBJ_DIRS := $(call relative_foreach, $(patsubst %, $(OBJ)/%, $(call relative_for
 
 CREATE_DIR_COMMAND := ./scripts/dirs.sh
 
-PROJECTS := pcc examples
+PROJECTS := pcc # examples
 
 .PHONY: all dirs clean external run qemu $(PROJECTS) test
 

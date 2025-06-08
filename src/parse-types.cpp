@@ -205,6 +205,7 @@ struct function parse_func_args(struct context *ctx) {
     }
 
     if (tok.charlit == ')') {
+      ctx->lexer->backtrack(&tok);
       break;
     }
   }
@@ -387,8 +388,15 @@ Post:
         arena_save = ctx->arena->save();
         *post_end = (struct type_spec) {
           .type = TYPE_FUNC,
-          .func = parse_func_args(ctx),
+          .func = { },
         };
+
+        if (ctx->lexer->peek().type != CHARLIT || 
+            ctx->lexer->peek().charlit != ')') {
+          post_end->func = parse_func_args(ctx);
+        }
+
+        ctx->lexer->get_tok_and_expect(CHARLIT, ')');
 
         prev_post_end = post_end;
 

@@ -19,26 +19,29 @@ static void print_types(struct type_spec *type, int indent) {
   for (;;) {
     switch (type->type) {
       case TYPE_PTR:
-        printf((ind + "pointer\n").c_str());
+        if (type->ptr.level > 1) {
+          printf("%ux ", type->ptr.level);
+        }
+        printf("%spointer\n", ind.c_str());
         break;
       case TYPE_ARRAY:
-        printf((ind + "array\n").c_str());
+        printf("%sarray\n", ind.c_str());
         break;
       case TYPE_FUNC:
-        printf((ind + "function:\n").c_str()); 
-        for (int i = 0; i < type->func.num_args; i++) {
+        printf("%sfunction:\n", ind.c_str()); 
+        for (uint64_t i = 0; i < type->func.num_args; i++) {
           print_types(type->func.args[i], indent + 1);
         }
         break;
       case TYPE_INT:
-        printf((ind + "int\n").c_str());
+        printf("%sint\n", ind.c_str());
         break;
       case TYPE_FLOAT:
-        printf((ind + "float\n").c_str());
+        printf("%sfloat\n", ind.c_str());
         break;
 
       default:
-        printf((ind + "too lazy to add this\n").c_str());
+        printf("%stoo lazy to add this\n", ind.c_str());
         break;
     }
 
@@ -57,6 +60,9 @@ static void print_types(struct type_spec *type, int indent) {
       case TYPE_FUNC:
         type = type->func.ret;
         break;
+
+      default:
+        assert(0 && "unreachable");
     }
   }
 }
@@ -73,6 +79,9 @@ static struct type_spec *parse_var(struct context *ctx,
   
   auto tmp = parse_type_expr(ctx, type, &ident);
   ctx->lexer->get_tok_and_expect(CHARLIT, ';');
+
+  (void)tok;
+  (void)arena_save;
   
   // if (std::get<1>(tmp)->type == TYPE_FUNC) {
     // ctx->arena->restore(arena_save);

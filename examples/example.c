@@ -1,5 +1,5 @@
 
-float foo(int a());
+float **(*foo)(int (*)());
 
 // int *foo(int *(int a));
 

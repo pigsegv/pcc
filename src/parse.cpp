@@ -18,6 +18,7 @@ static void parse_block(struct context *ctx,
   ctx->scopes.push_back({ });
 
   auto last_arena_save = ctx->arena->save();
+  (void)last_arena_save;
   curr->child = new (ctx->arena->alloc(sizeof(*curr->child))) 
                   (struct ast_node) {
                     .type = NODE_TYPE_NONE,
