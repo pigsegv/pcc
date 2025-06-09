@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <tuple>
 
+
 std::tuple<struct type_spec *, enum storage_classes, enum qualifiers> 
 parse_base_type(struct context *ctx) {
   struct type_spec *type = nullptr; 
@@ -259,6 +260,11 @@ std::tuple<struct type_spec *, struct type_spec *>
 parse_type_expr(struct context *ctx,
                 struct type_spec *base_type,
                 std::optional<struct string_view> *identifier) {
+  // Required for a comparison below
+  static struct type_spec none_type = {
+    .type = TYPE_NONE,
+  };
+
   struct token tok; 
 
   struct type_spec *ptr = nullptr;
@@ -278,7 +284,7 @@ parse_type_expr(struct context *ctx,
       case '(':  // This will be handled in the next step
         break;
 
-      case ';': case ')':
+      case ';': case ')': case ',':
         return { base_type, base_type }; // returns nullptr on recursive calls
 
       default:
@@ -294,8 +300,8 @@ parse_type_expr(struct context *ctx,
     switch (tok.charlit) {
       case '(': {
         ctx->lexer->get_tok();
-        std::tie(body, body_end) = parse_type_expr(ctx, nullptr, identifier);
-  
+        std::tie(body, body_end) = parse_type_expr(ctx, &none_type, identifier);
+
         // Function type, or expression termination
         if (body == nullptr) {
           if (ctx->lexer->peek().type == CHARLIT) {
@@ -319,6 +325,12 @@ parse_type_expr(struct context *ctx,
           }
 
           goto Post;
+        }
+
+        // This line is extremely hacky, 
+        // but I really don't want to refactor this
+        if (body == &none_type) {
+          body = nullptr;
         }
 
         ctx->lexer->get_tok_and_expect(CHARLIT, ')');

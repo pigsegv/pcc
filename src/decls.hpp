@@ -39,10 +39,6 @@ enum qualifiers {
   QUAL_CONST    = 0x2,
 };
 
-struct func_decl {
-  struct type_spec *ret;
-};
-
 struct var_decl {
   struct type_spec *type;
   struct expr *init;
@@ -56,7 +52,7 @@ struct decl {
   enum storage_classes storage;
 
   union {
-    struct func_decl *func_decl;
+    struct function *func_decl;
     struct var_decl  *var_decl;
   };
 };

@@ -1,7 +1,6 @@
+void (*(*n)(void (*)(int)))(int);
 
-float **(*foo)(int (*)());
-int (*(*foo)(void));
-int *foo(int *(int a));
+float **(*foo)(int (*)(int (*(*lol)(void)), float *plol(int *(int a))));
 
 
 int main(void) {

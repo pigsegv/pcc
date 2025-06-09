@@ -67,8 +67,8 @@ static void print_types(struct type_spec *type, int indent) {
   }
 }
 
-static struct type_spec *parse_var(struct context *ctx,
-                                   struct ast_node *curr) {
+static struct type_spec *parse_var_and_func(struct context *ctx,
+                                            struct ast_node *curr) {
   (void)curr;
 
   struct token tok = ctx->lexer->peek();
@@ -121,6 +121,6 @@ void parse_decl(struct context *ctx, struct ast_node *curr) {
    *   variable
    *   function
    */
-  struct type_spec *t = parse_var(ctx, curr);
+  struct type_spec *t = parse_var_and_func(ctx, curr);
   (void)t;
 }

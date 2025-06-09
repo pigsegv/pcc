@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <assert.h>
 #include <cstddef>
+#include <sanitizer/asan_interface.h>
 
 size_t arena::get_block_size(void) {
   return m_capacity;
@@ -43,6 +44,7 @@ void arena::restore(uint64_t state) {
   class arena *tmp = a->m_next;
   while (tmp != nullptr) { // TODO: Don't traverse the entire list
     tmp->m_allocated = 0;
+    __asan_poison_memory_region(m_data, m_capacity);
     tmp = tmp->m_next;
   }
 
@@ -118,6 +120,7 @@ void *arena::alloc(size_t size) {
 
   } else {
     void *block = m_data + m_allocated + padding;
+    __asan_unpoison_memory_region(block, size);
     m_allocated += size + padding;
 
     return block;
@@ -129,6 +132,7 @@ arena::arena(size_t block_size) : m_capacity(block_size) {
 
   m_next = nullptr;
   m_data = m_block + sizeof(*m_next);
+  __asan_poison_memory_region(m_data, block_size);
 
   m_allocated = 0;
 }
