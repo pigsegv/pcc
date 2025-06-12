@@ -75,32 +75,48 @@ enum expr_types {
 
   EXPR_SIMPLE_ID,
   EXPR_SIMPLE_LIT,
-  EXPR_COMP,
+
+  EXPR_UNARY,
+  EXPR_BINARY,
+  EXPR_TERNARY,
+};
+
+struct simple_expr {
+
 };
 
 struct expr {
   enum expr_types type;
 
   bool is_lvalue;
-  enum operators op;
 
   union {
     struct {
+      enum operators op;
+      struct expr *operand;
+
+    } unary;
+
+    struct {
+      enum operators op;
       struct expr *left;
       struct expr *right;
-    };
+
+    } binary;
 
     struct {
       struct expr *condition;
       struct expr *succ;
       struct expr *fail;
-    };
+
+    } ternary;
 
     struct literal *value;
+    struct type_spec *cast_type;
     struct string_view identifier;
   };
 };
 
-struct expr *parse_expr(struct context *ctx, class arena *arena);
+struct expr *parse_expr(struct context *ctx);
 
 #endif // PCC_EXPR_H

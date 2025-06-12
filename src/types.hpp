@@ -128,7 +128,7 @@ struct type_spec {
     type_enum                           \
   )
 
-static const cstr_umap<uint32_t> keywords = {
+static const cstr_umap<uint32_t> type_headers = {
   TO_MAP("int", TYPE_INT),
   TO_MAP("char", TYPE_CHAR),
 

@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
   class arena parse_arena = arena();
 
   class lexer lexer(contents, argv[1], &strings);
+
   parse(&lexer, &parse_arena);
 
   // for (struct token tok = lexer.get_tok(); 
@@ -133,6 +134,15 @@ int main(int argc, char **argv) {
         // printf("Unkown\n");
     // }
   // }
+// 
+  // for (int i = 0; i < strings.save(); i++) {
+    // if (strings[i]) {
+      // printf("%c", strings[i]);
+    // } else {
+      // printf("\\0");
+    // }
+  // }
+  // printf("\n");
 
   delete[] contents;
   return 0;

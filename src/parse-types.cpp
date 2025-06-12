@@ -21,17 +21,17 @@ parse_base_type(struct context *ctx) {
   }
   
   // get types, qualifiers and storage classes
-  if (auto s = keywords.find(TO_STD_SV(tok.str));
-      s != keywords.end()) {
+  if (auto s = type_headers.find(TO_STD_SV(tok.str));
+      s != type_headers.end()) {
     
     struct type_spec tmp = {
       .type = TYPE_NONE,
     };
 
-    for (; tok.type == ID && s != keywords.end(); 
+    for (; tok.type == ID && s != type_headers.end(); 
          tok = ctx->lexer->peek(), 
          s = tok.type == ID 
-           ? keywords.find(TO_STD_SV(tok.str)) : keywords.end()) {
+           ? type_headers.find(TO_STD_SV(tok.str)) : type_headers.end()) {
       ctx->lexer->get_tok();
       switch (s->second) {
         case SIGNED_FLAG:
@@ -226,7 +226,10 @@ struct function parse_func_args(struct context *ctx) {
 
   for (uint64_t i = 0; i < func.num_args; i++) {
     func.args[i] = args[i].first;
-    assert(func.args[i]->type != TYPE_VARIADIC);
+    if (func.args[i]->type == TYPE_VARIADIC) {
+      EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "Variadic is not the last argument\n");
+    }
 
     struct string_view tmp = { .view = nullptr, .len = 0};
     
@@ -338,7 +341,7 @@ parse_type_expr(struct context *ctx,
     }
 
   } else if (tok.type == ID) {
-    if (keywords.contains(TO_STD_SV(tok.str)) ||
+    if (type_headers.contains(TO_STD_SV(tok.str)) ||
         find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
       if (ptr != nullptr) {
         EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 

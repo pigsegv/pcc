@@ -31,21 +31,29 @@ static void parse_block(struct context *ctx,
   for (;;) {
     struct token tok = ctx->lexer->peek();
 
+#if 0
+    struct expr *expr = parse_expr(ctx);
+#else
     switch (tok.type) {
-      case ID: {
-        if (keywords.contains(TO_STD_SV(tok.str)) || 
-            find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
-          parse_decl(ctx, last_child);
-        } else {
-          ctx->lexer->get_tok();
-        }
-      } break;
+      // case ID: {
+        // if (type_headers.contains(TO_STD_SV(tok.str)) || 
+            // find_type_in_scope(&tok.str, &ctx->scopes) != nullptr) {
+          // parse_decl(ctx, last_child);
+        // } else {
+          // ctx->lexer->get_tok();
+        // }
+      // } break;
+
+      case INTLIT: case FLOATLIT:
+        parse_expr(ctx);
+        break;
       
       case END_OF_FILE:
         std::exit(0);
       default:
         ctx->lexer->get_tok();
     }
+#endif
 
     last_arena_save = ctx->arena->save();
     last_child->siblings.next = 
