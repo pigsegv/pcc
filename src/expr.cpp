@@ -174,6 +174,9 @@ static int get_prec(enum operators op) {
     case OP_ANDEQ: case OP_XOREQ: case OP_OREQ:
       return 14;
 
+    case OP_COMMA:
+      return 15;
+
     default:
       return -1;
   }
