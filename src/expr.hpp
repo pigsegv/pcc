@@ -16,6 +16,7 @@ enum operators {
   OP_MINUS,
   OP_MUL,
   OP_DIV,
+  OP_MOD,
 
   OP_OR,
   OP_AND,
@@ -36,10 +37,13 @@ enum operators {
 
   OP_SIZEOF,
 
+  OP_LESS,
+  OP_GREATER,
   OP_EQ,
   OP_NOTEQ,
   OP_LESSEQ,
   OP_GREATEREQ,
+
 
   OP_ANDAND,
   OP_OROR,
@@ -47,8 +51,10 @@ enum operators {
   OP_SHL,
   OP_SHR,
 
-  OP_PLUSPLUS,
-  OP_MINUSMINUS,
+  OP_PREINC,
+  OP_POSTINC,
+  OP_PREDEC,
+  OP_POSTDEC,
 
   OP_ASSIGN,
 
@@ -70,6 +76,7 @@ enum operators {
   OP_TERNARY,
 };
 
+
 enum expr_types {
   EXPR_NONE,
 
@@ -79,10 +86,8 @@ enum expr_types {
   EXPR_UNARY,
   EXPR_BINARY,
   EXPR_TERNARY,
-};
 
-struct simple_expr {
-
+  EXPR_OP, // Just an operator, no operands
 };
 
 struct expr {
@@ -118,5 +123,6 @@ struct expr {
 };
 
 struct expr *parse_expr(struct context *ctx);
+struct literal *fold_expr(const struct expr *expr);
 
 #endif // PCC_EXPR_H

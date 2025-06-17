@@ -321,6 +321,15 @@ struct token lexer::get_tok(void) {
         else             tok.type = SQSTRING;
 
         tok.str = get_string(m_strings_map, tmp + 1, *tmp, m_strings, &m_cursor);
+        if (tok.type == SQSTRING && tok.str.len != 1) {
+          report_error(m_filepath, m_src, tok.location, 
+                       "Multicharacter literals not supported\n");
+          return {
+            .type = PARSE_ERROR,
+            .location = tok.location,
+          };
+        }
+
         if (tok.str.view == nullptr) {
           report_error(m_filepath, m_src, tok.location, 
                        "Expected closing '" FORMAT_ERROR("\"") "'\n");

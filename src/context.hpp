@@ -24,8 +24,8 @@ struct context {
   
   uint64_t id_counter = 0;
 
-  const char *filepath;
-  const char *src;
+  const char *const filepath;
+  const char *const src;
 
   class lexer *lexer;
 
