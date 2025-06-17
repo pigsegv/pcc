@@ -100,7 +100,6 @@ static bool isop(const struct token *tok) {
     case OROR: case SHL: case SHR: case PLUSPLUS: case MINUSMINUS: case PLUSEQ:
     case MINUSEQ: case MULEQ: case DIVEQ: case MODEQ: case ANDEQ: case OREQ:
     case XOREQ: case ARROW: case EQARROW: case SHLEQ: case SHREQ:
-    case POUNDPOUND: case ELIPSES:
       return true;
 
     default:
@@ -165,7 +164,7 @@ static int get_prec(enum operators op) {
     case OP_OROR:
       return 12;
 
-    case OP_TERNARY:
+    case OP_TERNARY: case OP_TERN: case OP_ARY:
       return 13;
 
     case OP_ASSIGN: case OP_PLUSEQ: case OP_MINUSEQ: 
@@ -182,16 +181,184 @@ static int get_prec(enum operators op) {
   }
 }
 
-struct expr *parse_expr(struct context *ctx) {
+static enum operators get_op(const struct token *tok, 
+                             const struct token *prev) {
+  switch(tok->type) {
+    case ID:
+      assert(std::strcmp(tok->str.view, "sizeof") == 0);
+      return OP_SIZEOF;
+
+    case EQ:
+      return OP_EQ;
+    case NOTEQ:
+      return OP_NOTEQ;
+    case LESSEQ:
+      return OP_LESSEQ;
+    case GREATEREQ:
+      return OP_GREATEREQ;
+    case ANDAND:
+      return OP_ANDAND;
+    case OROR:
+      return OP_OROR;
+    case SHL:
+      return OP_SHL;
+    case SHR:
+      return OP_SHR;
+
+    case PLUSPLUS: {
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_POSTINC;
+
+      } else {
+        return OP_PREINC;
+      }
+    }
+    
+    case MINUSMINUS: {
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_POSTDEC;
+
+      } else {
+        return OP_PREDEC;
+      }
+    }
+
+    case PLUSEQ:
+      return OP_PLUSEQ;
+    case MINUSEQ:
+      return OP_MINUSEQ;
+    case MULEQ:
+      return OP_MULEQ;
+    case DIVEQ:
+      return OP_DIVEQ;
+    case MODEQ:
+      return OP_MODEQ;
+    case ANDEQ:
+      return OP_ANDEQ;
+    case OREQ:
+      return OP_OREQ;
+    case XOREQ:
+      return OP_XOREQ;
+    case ARROW:
+      return OP_ARROW;
+    case SHLEQ: 
+      return OP_SHLEQ;
+    case SHREQ:
+      return OP_SHREQ;
+
+    case CHARLIT:
+      goto Charlit;
+
+    default:
+      return OP_NONE;
+  }
+
+Charlit:
+  switch (tok->charlit) {
+    case '+':
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_PLUS;
+
+      } else {
+        return OP_UNARY_PLUS;
+      }
+
+    case '-':
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_MINUS;
+
+      } else {
+        return OP_UNARY_MINUS;
+      }
+
+    case '*':
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_MUL;
+
+      } else {
+        return OP_DEREF;
+      }
+
+    case '/':
+      return OP_DIV;
+    case '%':
+      return OP_MOD;
+
+    case '|':
+      return OP_OR;
+    case '&':
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_AND;
+
+      } else {
+        return OP_REF;
+      }
+    case '^':
+      return OP_XOR;
+    case '~':
+      return OP_NEGATE;
+
+    case '!':
+      return OP_NOT;
+
+    case '[':
+      return OP_OPEN_SQR;
+    case ']':
+      return OP_CLOSE_SQR;
+
+    case '(':
+      return OP_OPEN_PAREN;
+    case ')':
+      return OP_CLOSE_PAREN;
+
+    case ',':
+      return OP_COMMA;
+
+    case '<':
+      return OP_LESS;
+    case '>':
+      return OP_GREATER;
+
+    case '=':
+      return OP_ASSIGN;
+
+    case '.':
+      return OP_DOT;
+
+    case '?':
+      return OP_TERN;
+    case ':':
+      return OP_ARY;
+
+    default:
+      return OP_NONE;
+  }
+}
+
+struct expr *parse_expr(struct context *ctx, const char *term) {
   struct expr *expr = nullptr;
 
-  std::vector<int> op;
-  std::vector<struct expr *> output;
+  std::vector<enum operators> op_stack;
+  std::vector<struct expr *> output_stack;
 
   struct token prev = { .type = NONE };
   struct token tok = ctx->lexer->get_tok();
   for (;;) {
     if (isop(&tok)) {
+      printf("%d\n", get_op(&tok, &prev));
+
     } else if (islit(&tok)) {
       struct expr *val = 
         new (ctx->arena->alloc(sizeof(*val))) struct expr;
@@ -229,7 +396,7 @@ struct expr *parse_expr(struct context *ctx) {
           assert(0 && "Unreachable");
       }
 
-      output.push_back(val);
+      output_stack.push_back(val);
 
     } else {
       EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 

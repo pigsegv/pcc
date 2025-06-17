@@ -44,8 +44,8 @@ static void parse_block(struct context *ctx,
         // }
       // } break;
 
-      case INTLIT: case FLOATLIT:
-        parse_expr(ctx);
+      case INTLIT: case FLOATLIT: case ID: case CHARLIT:
+        parse_expr(ctx, ";");
         break;
       
       case END_OF_FILE:

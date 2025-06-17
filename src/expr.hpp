@@ -28,8 +28,12 @@ enum operators {
   OP_REF,
   OP_DEREF,
   OP_SUBSCRIPT,
+  OP_OPEN_SQR,
+  OP_CLOSE_SQR,
 
   OP_FUNCALL,
+  OP_OPEN_PAREN,
+  OP_CLOSE_PAREN,
 
   OP_COMMA,
 
@@ -74,6 +78,8 @@ enum operators {
   OP_SHREQ,
   
   OP_TERNARY,
+  OP_TERN,    // ?
+  OP_ARY,     // :
 };
 
 
@@ -116,13 +122,19 @@ struct expr {
 
     } ternary;
 
+    struct {
+      struct expr **args;
+      uint64_t args_count;
+
+    } func;
+
     struct literal *value;
     struct type_spec *cast_type;
     struct string_view identifier;
   };
 };
 
-struct expr *parse_expr(struct context *ctx);
+struct expr *parse_expr(struct context *ctx, const char *term);
 struct literal *fold_expr(const struct expr *expr);
 
 #endif // PCC_EXPR_H

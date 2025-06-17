@@ -107,11 +107,12 @@ void *arena::alloc(size_t size) {
   size_t padding = (uintptr_t)(m_data + m_allocated) % alignof(max_align_t);
   padding = padding == 0 ? 0 : alignof(max_align_t) - padding;
 
-  if (size + padding > m_capacity) return nullptr;
+  assert(size + padding <= m_capacity);
 
   if (m_allocated + size + padding > m_capacity) {
     if (m_next == nullptr) {
       m_next = new (m_block) arena(m_capacity);
+      assert(m_next != nullptr);
     }
 
     m_allocated = m_capacity; // Mark this node as 'full'
