@@ -177,7 +177,7 @@ static int get_prec(enum operators op) {
       return 15;
 
     default:
-      return -1;
+      assert(0 && "Unreachable");
   }
 }
 
@@ -347,17 +347,124 @@ Charlit:
   }
 }
 
+static enum op_assocs get_assoc(enum operators op) {
+  switch (op) {
+    case OP_POSTINC: case OP_POSTDEC: 
+    case OP_FUNCALL: case OP_SUBSCRIPT:
+    case OP_DOT: case OP_ARROW:
+      return ASSOC_L;
+
+    case OP_PREINC: case OP_PREDEC:
+    case OP_UNARY_PLUS: case OP_UNARY_MINUS:
+    case OP_NOT: case OP_NEGATE:
+    case OP_CAST: 
+    case OP_DEREF: case OP_REF:
+    case OP_SIZEOF:
+      return ASSOC_R;
+
+    case OP_MUL: case OP_DIV: case OP_MOD:
+    case OP_PLUS: case OP_MINUS:
+    case OP_SHL: case OP_SHR:
+    case OP_LESS: case OP_GREATER: case OP_LESSEQ: case OP_GREATEREQ:
+    case OP_EQ: case OP_NOTEQ:
+    case OP_AND: case OP_XOR: case OP_OR:
+    case OP_ANDAND: case OP_OROR:
+      return ASSOC_L;
+
+    case OP_TERNARY: case OP_TERN: case OP_ARY:
+    case OP_ASSIGN: 
+    case OP_PLUSEQ: case OP_MINUSEQ: 
+    case OP_MULEQ: case OP_DIVEQ: case OP_MODEQ:
+    case OP_SHLEQ: case OP_SHREQ:
+    case OP_ANDEQ: case OP_XOREQ: case OP_OREQ:
+      return ASSOC_R;
+
+    case OP_COMMA: 
+      return ASSOC_L;
+
+    default:
+      assert(0 && "Unreachable");
+  }
+}
+
+static bool isbinop(enum operators op) {
+  switch (op) {
+    case OP_UNARY_PLUS: case OP_UNARY_MINUS: case OP_REF: case OP_DEREF:
+    case OP_NEGATE: case OP_NOT: case OP_SIZEOF: 
+    case OP_PREINC: case OP_POSTINC: case OP_PREDEC: case OP_POSTDEC:
+    case OP_OPEN_SQR: case OP_CLOSE_SQR: 
+    case OP_OPEN_PAREN: case OP_CLOSE_PAREN: case OP_TERN: case OP_ARY:
+      return false;
+
+    default:
+      return true;
+  }
+}
+
 struct expr *parse_expr(struct context *ctx, const char *term) {
   struct expr *expr = nullptr;
 
-  std::vector<enum operators> op_stack;
+  std::vector<struct expr *> op_stack;
   std::vector<struct expr *> output_stack;
 
   struct token prev = { .type = NONE };
   struct token tok = ctx->lexer->get_tok();
   for (;;) {
     if (isop(&tok)) {
-      printf("%d\n", get_op(&tok, &prev));
+      enum operators op = get_op(&tok, &prev);
+      if (op == OP_NONE) {
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "unexpected token: %d\n", tok.type);
+      }
+      
+      if (isbinop(op)) {
+        // for (enum operators op_back
+        //      ;
+        //      ((op_stack.size() && (op_back = op_stack.back()) != OP_OPEN_SQR &&
+        //        op_back != OP_OPEN_PAREN && op_back != OP_TERN)) &&
+        //      (get_prec(op_back) > get_prec(op) || 
+        //       (get_prec(op_back) == get_prec(op) && get_assoc(op) == ASSOC_L))
+        //      ;
+        //      op_stack.pop_back());
+
+        while (op_stack.size()) {
+          struct expr *op_back_expr = op_stack.back();
+
+          if (op_back_expr->op == OP_OPEN_SQR || 
+              op_back_expr->op == OP_OPEN_PAREN ||
+              op_back_expr->op == OP_TERN) {
+            break;
+          }
+
+          if (get_prec(op) == get_prec(op_back_expr->op) && 
+              get_assoc(op) == ASSOC_R) {
+            break;
+          }
+
+          output_stack.push_back(op_back_expr);
+          op_stack.pop_back();
+        }
+
+        struct expr *op_expr = 
+          new (ctx->arena->alloc(sizeof(*op_expr))) (struct expr) {
+            .type = EXPR_OP,
+            .op = op,
+          };
+
+        /* 
+         * comma is the only binary operator that can indicate the end of the
+         * expression
+         */
+        if (op == OP_COMMA && op_stack.size() == 0 && std::strchr(term, ',')) {
+          output_stack.push_back(op_expr);
+          break;
+        }
+
+        op_stack.push_back(op_expr);
+
+      } else {
+        assert(0 && "TODO");
+      }
 
     } else if (islit(&tok)) {
       struct expr *val = 

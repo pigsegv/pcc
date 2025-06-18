@@ -48,7 +48,6 @@ enum operators {
   OP_LESSEQ,
   OP_GREATEREQ,
 
-
   OP_ANDAND,
   OP_OROR,
 
@@ -93,23 +92,23 @@ enum expr_types {
   EXPR_BINARY,
   EXPR_TERNARY,
 
-  EXPR_OP, // Just an operator, no operands
+  EXPR_OP,
 };
 
 struct expr {
   enum expr_types type;
 
+  enum operators op;
+
   bool is_lvalue;
 
   union {
     struct {
-      enum operators op;
+      struct expr *ctx; // Additional data required for certain operators
       struct expr *operand;
-
     } unary;
 
     struct {
-      enum operators op;
       struct expr *left;
       struct expr *right;
 
@@ -123,6 +122,7 @@ struct expr {
     } ternary;
 
     struct {
+      struct expr *func;
       struct expr **args;
       uint64_t args_count;
 
