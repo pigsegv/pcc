@@ -310,7 +310,7 @@ struct token lexer::get_tok(void) {
       case ';': case '(': case ')': 
       case '{': case '}': case '[': case ']': 
       case '\\': case ',': case '?': case ':':
-      case '\n': case '~':
+      case '~':
         tok.type = CHARLIT;
         tok.charlit = *tmp;
         m_cursor = tmp + 1;

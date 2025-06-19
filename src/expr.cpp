@@ -3,10 +3,13 @@
 #include "tokenize.hpp"
 #include "context.hpp"
 #include "error.hpp"
+#include "parse-types.hpp"
 
 #include <vector>
 #include <cstring>
 #include <limits.h>
+#include <utility>
+#include <tuple>
 
 enum op_assocs {
   ASSOC_L,
@@ -97,7 +100,17 @@ static bool isop(const struct token *tok) {
   }
 
   switch (tok->type) {
-    case CHARLIT: case EQ: case NOTEQ: case LESSEQ: case GREATEREQ: case ANDAND:
+    case CHARLIT: 
+      switch (tok->charlit) {
+        case '#': case '{': case '}': case '\\':
+          return false;
+
+        default:
+          return true;
+      }
+
+
+    case EQ: case NOTEQ: case LESSEQ: case GREATEREQ: case ANDAND:
     case OROR: case SHL: case SHR: case PLUSPLUS: case MINUSMINUS: case PLUSEQ:
     case MINUSEQ: case MULEQ: case DIVEQ: case MODEQ: case ANDEQ: case OREQ:
     case XOREQ: case ARROW: case EQARROW: case SHLEQ: case SHREQ:
@@ -448,6 +461,32 @@ static void pop_op_stack(std::vector<struct expr *> &op_stack,
   }
 }
 
+static std::pair<struct expr **, uint64_t> parse_args(struct context *ctx) {
+  std::vector<struct expr *> args_vec;
+  struct token tok = ctx->lexer->get_tok();
+  for (;;) {
+    if (tok.type == CHARLIT && tok.charlit == ')') {
+      break;
+    }
+
+    args_vec.push_back(parse_expr(ctx, ",)"));
+    tok = ctx->lexer->get_tok();
+    if (tok.type != CHARLIT || (tok.charlit != ',' && tok.charlit != ')')) {
+      EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                   "unexpected token: %d\n", tok.type);
+    }
+  }
+
+  struct expr **args = new (ctx->arena->alloc(args_vec.size() * sizeof(*args))) 
+      struct expr *[args_vec.size()];
+
+  for (uint64_t i = 0; i < args_vec.size(); i++) {
+    args[i] = args_vec[i];
+  }
+
+  return { args, args_vec.size() };
+}
+
 struct expr *parse_expr(struct context *ctx, const char *term) {
   struct expr *expr = nullptr;
 
@@ -492,12 +531,7 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
             .op = op,
           };
 
-        /* 
-         * comma is the only binary operator that can indicate the end of the
-         * expression
-         */
         if (op == OP_COMMA && op_stack.empty() && std::strchr(term, ',')) {
-          output_stack.push_back(op_expr);
           break;
         }
 
@@ -505,15 +539,60 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
 
       } else if (isunop(op)) {
 Unary:
-        assert(0 && "TODO");
+        struct expr *op_expr = 
+          new (ctx->arena->alloc(sizeof(*op_expr))) (struct expr) {
+            .type = EXPR_OP,
+            .op = OP_NONE,
+          };
+
+        if (op == OP_FUNCALL) {
+          op_expr->op = OP_FUNCALL;
+          op_expr->unary.ctx = 
+            new (ctx->arena->alloc(sizeof(*op_expr->unary.ctx))) (struct expr) {
+              .type = EXPR_NONE, 
+            };
+
+          std::tie(op_expr->unary.ctx->func.args, 
+                   op_expr->unary.ctx->func.args_count) = 
+            parse_args(ctx);
+
+        } else if (op == OP_SUBSCRIPT) {
+          op_expr->op = OP_SUBSCRIPT;
+          op_expr->unary.ctx = parse_expr(ctx, "]");
+          ctx->lexer->get_tok_and_expect(CHARLIT, ']');
+
+        } else if (op == OP_OPEN_PAREN) {
+          op_expr->op = OP_CAST;
+
+          auto [base_type, storage, _] = parse_base_type(ctx);
+          if (storage != CLASS_NONE) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                         "Storage class specified in cast expression");
+          }
+          op_expr->unary.ctx = 
+            new (ctx->arena->alloc(sizeof(*op_expr->unary.ctx))) (struct expr) {
+              .type = EXPR_NONE, 
+            };
+
+          op_expr->unary.ctx->cast_type = 
+            std::get<0>(parse_type_expr(ctx, base_type, nullptr));
+          ctx->lexer->get_tok_and_expect(CHARLIT, ')');
+
+        } else {
+          op_expr->op = op;
+        }
+        
+        pop_op_stack(op_stack, output_stack, op_expr->op);
+        op_stack.push_back(op_expr);
 
       } else if (op == OP_CLOSE_SQR || op == OP_CLOSE_PAREN || 
                  op == OP_ARY) {
         enum operators opening = OP_NONE;
         switch (op) {
-          // case OP_CLOSE_SQR   : opening = OP_OPEN_SQR; break;
           case OP_CLOSE_PAREN : opening = OP_OPEN_PAREN; break;
           case OP_ARY         : opening = OP_TERN; break;
+
+          case OP_CLOSE_SQR   : opening = OP_NONE; break;
 
           default:
             assert(0 && "Unreachable");
@@ -629,6 +708,7 @@ Unary:
   }
 
   ctx->lexer->backtrack(&tok);
+  assert(op_stack.empty());
 
   return expr;
 }

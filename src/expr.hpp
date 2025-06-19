@@ -123,7 +123,6 @@ struct expr {
     } ternary;
 
     struct {
-      struct expr *func;
       struct expr **args;
       uint64_t args_count;
 

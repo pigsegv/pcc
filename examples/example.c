@@ -1,6 +1,4 @@
-(hi + 2 * 5;
-
-// void (*(*n)(void (*)(int)))(int);
+// (hi[4] + 2 * 5 ? 1 : 3)(1, 3, 4);
 // 
 // float **(*foo)(int (*)(int (*(*lol)(void)), float *plol(int *(int a))));
 // int main(void) {
