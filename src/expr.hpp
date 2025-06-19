@@ -8,6 +8,7 @@
 
 enum operators {
   OP_NONE,
+  OP_STACK_CLEAR,
 
   OP_UNARY_PLUS,
   OP_UNARY_MINUS,

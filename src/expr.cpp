@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <cstring>
+#include <limits.h>
 
 enum op_assocs {
   ASSOC_L,
@@ -176,6 +177,9 @@ static int get_prec(enum operators op) {
     case OP_COMMA:
       return 15;
 
+    case OP_STACK_CLEAR:
+      return INT_MAX;
+
     default:
       assert(0 && "Unreachable");
   }
@@ -314,12 +318,20 @@ Charlit:
       return OP_NOT;
 
     case '[':
-      return OP_OPEN_SQR;
+      return OP_SUBSCRIPT;
     case ']':
       return OP_CLOSE_SQR;
 
     case '(':
-      return OP_OPEN_PAREN;
+      if ((!isop(prev) && islit(prev)) || 
+          (prev->type == CHARLIT && (prev->charlit == ')' ||
+          prev->charlit == ']'))) {
+        return OP_FUNCALL;
+
+      } else {
+        return OP_OPEN_PAREN;
+      }
+
     case ')':
       return OP_CLOSE_PAREN;
 
@@ -392,12 +404,47 @@ static bool isbinop(enum operators op) {
     case OP_UNARY_PLUS: case OP_UNARY_MINUS: case OP_REF: case OP_DEREF:
     case OP_NEGATE: case OP_NOT: case OP_SIZEOF: 
     case OP_PREINC: case OP_POSTINC: case OP_PREDEC: case OP_POSTDEC:
-    case OP_OPEN_SQR: case OP_CLOSE_SQR: 
+    case OP_SUBSCRIPT: case OP_CLOSE_SQR: 
+    case OP_FUNCALL:
     case OP_OPEN_PAREN: case OP_CLOSE_PAREN: case OP_TERN: case OP_ARY:
       return false;
 
     default:
       return true;
+  }
+}
+
+static bool isunop(enum operators op) {
+  switch (op) {
+    case OP_UNARY_PLUS: case OP_UNARY_MINUS: case OP_REF: case OP_DEREF:
+    case OP_NEGATE: case OP_NOT: case OP_SIZEOF: 
+    case OP_PREINC: case OP_POSTINC: case OP_PREDEC: case OP_POSTDEC:
+    case OP_SUBSCRIPT: case OP_FUNCALL:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+static void pop_op_stack(std::vector<struct expr *> &op_stack, 
+                         std::vector<struct expr *> &output_stack,
+                         enum operators op) {
+  while (op_stack.size()) {
+    struct expr *op_back_expr = op_stack.back();
+
+    if (op_back_expr->op == OP_OPEN_PAREN || op_back_expr->op == OP_TERN) {
+      return;
+    }
+
+    if (get_prec(op) < get_prec(op_back_expr->op) || 
+        (get_prec(op) == get_prec(op_back_expr->op) && 
+        get_assoc(op) == ASSOC_R)) {
+      return;
+    }
+
+    output_stack.push_back(op_back_expr);
+    op_stack.pop_back();
   }
 }
 
@@ -410,6 +457,16 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
   struct token prev = { .type = NONE };
   struct token tok = ctx->lexer->get_tok();
   for (;;) {
+    if (tok.type == CHARLIT && tok.charlit == ';') {
+      pop_op_stack(op_stack, output_stack, OP_STACK_CLEAR); 
+      if (op_stack.size() != 0) {
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "unmatched '(', '[', or unterminated ternary\n");
+      }
+
+      break;
+    }
+
     if (isop(&tok)) {
       enum operators op = get_op(&tok, &prev);
       if (op == OP_NONE) {
@@ -422,28 +479,12 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
         //      ;
         //      ((op_stack.size() && (op_back = op_stack.back()) != OP_OPEN_SQR &&
         //        op_back != OP_OPEN_PAREN && op_back != OP_TERN)) &&
-        //      (get_prec(op_back) > get_prec(op) || 
+        //      (get_prec(op_back) < get_prec(op) || 
         //       (get_prec(op_back) == get_prec(op) && get_assoc(op) == ASSOC_L))
         //      ;
         //      op_stack.pop_back());
 
-        while (op_stack.size()) {
-          struct expr *op_back_expr = op_stack.back();
-
-          if (op_back_expr->op == OP_OPEN_SQR || 
-              op_back_expr->op == OP_OPEN_PAREN ||
-              op_back_expr->op == OP_TERN) {
-            break;
-          }
-
-          if (get_prec(op) == get_prec(op_back_expr->op) && 
-              get_assoc(op) == ASSOC_R) {
-            break;
-          }
-
-          output_stack.push_back(op_back_expr);
-          op_stack.pop_back();
-        }
+        pop_op_stack(op_stack, output_stack, op);
 
         struct expr *op_expr = 
           new (ctx->arena->alloc(sizeof(*op_expr))) (struct expr) {
@@ -455,15 +496,88 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
          * comma is the only binary operator that can indicate the end of the
          * expression
          */
-        if (op == OP_COMMA && op_stack.size() == 0 && std::strchr(term, ',')) {
+        if (op == OP_COMMA && op_stack.empty() && std::strchr(term, ',')) {
           output_stack.push_back(op_expr);
           break;
         }
 
         op_stack.push_back(op_expr);
 
-      } else {
+      } else if (isunop(op)) {
+Unary:
         assert(0 && "TODO");
+
+      } else if (op == OP_CLOSE_SQR || op == OP_CLOSE_PAREN || 
+                 op == OP_ARY) {
+        enum operators opening = OP_NONE;
+        switch (op) {
+          // case OP_CLOSE_SQR   : opening = OP_OPEN_SQR; break;
+          case OP_CLOSE_PAREN : opening = OP_OPEN_PAREN; break;
+          case OP_ARY         : opening = OP_TERN; break;
+
+          default:
+            assert(0 && "Unreachable");
+        }
+
+        while (op_stack.size()) {
+          struct expr *op_back_expr = op_stack.back();
+
+          if (op_back_expr->op == OP_OPEN_PAREN ||
+              op_back_expr->op == OP_TERN) {
+            if (op_back_expr->op != opening) {
+              EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                          "Mismatched: '%c'\n", tok.charlit);
+            }
+
+            break;
+          }
+
+          output_stack.push_back(op_back_expr);
+          op_stack.pop_back();
+        }
+
+        if (op_stack.empty()) {
+          break;
+        }
+
+        if (op == OP_ARY) {
+          assert(op_stack.back()->op == OP_TERN);
+          op_stack.pop_back();
+
+          struct expr *op_ternary = 
+            new (ctx->arena->alloc(sizeof(*op_ternary))) (struct expr) {
+              .type = EXPR_OP,
+              .op = OP_TERNARY,
+            };
+          op_stack.push_back(op_ternary);
+
+        } else {
+          op_stack.pop_back();
+        }
+
+      } else {
+        // '(', '[', '?'
+        assert(op == OP_OPEN_PAREN || op == OP_TERN);
+
+        {
+          struct token peek = ctx->lexer->peek();
+          if (peek.type == ID && (type_headers.contains(TO_STD_SV(peek.str)) ||
+              find_type_in_scope(&peek.str, &ctx->scopes) != nullptr)) {
+            goto Unary;
+          }
+        }
+
+        if (op == OP_TERN) {
+          pop_op_stack(op_stack, output_stack, op);
+        } 
+
+        struct expr *op_expr = 
+          new (ctx->arena->alloc(sizeof(*op_expr))) (struct expr) {
+            .type = EXPR_OP,
+            .op = op,
+          };
+
+        op_stack.push_back(op_expr);
       }
 
     } else if (islit(&tok)) {
