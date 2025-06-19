@@ -487,7 +487,18 @@ static std::pair<struct expr **, uint64_t> parse_args(struct context *ctx) {
   return { args, args_vec.size() };
 }
 
+int64_t get_next_op(const std::vector<struct expr *> &output) {
+  for (uint64_t i = 0; i < output.size(); i++) {
+    if (output[i]->type == EXPR_OP)
+      return i;
+  }
+
+  return -1;
+}
+
 struct expr *parse_expr(struct context *ctx, const char *term) {
+  assert(0 && "TODO: Validate expressions");
+
   struct expr *expr = nullptr;
 
   std::vector<struct expr *> op_stack;
@@ -497,10 +508,15 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
   struct token tok = ctx->lexer->get_tok();
   for (;;) {
     if (tok.type == CHARLIT && tok.charlit == ';') {
+      if (std::strchr(term, ';') == NULL) {
+        EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                    "Unexpected token ';'\n");
+      }
+
       pop_op_stack(op_stack, output_stack, OP_STACK_CLEAR); 
       if (op_stack.size() != 0) {
         EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
-                    "unmatched '(', '[', or unterminated ternary\n");
+                    "Unmatched '(', '[', or unterminated ternary\n");
       }
 
       break;
@@ -616,6 +632,11 @@ Unary:
         }
 
         if (op_stack.empty()) {
+          if (std::strchr(term, tok.charlit) == NULL) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                        "Mismatched: '%c'\n", tok.charlit);
+          }
+
           break;
         }
 
@@ -709,6 +730,10 @@ Unary:
 
   ctx->lexer->backtrack(&tok);
   assert(op_stack.empty());
+
+  while (output_stack.size()) {
+    int64_t index = get_next_op(output_stack);
+  }
 
   return expr;
 }
