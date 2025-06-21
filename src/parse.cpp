@@ -34,6 +34,7 @@ static void parse_block(struct context *ctx,
 #if 0
     struct expr *expr = parse_expr(ctx);
 #else
+    struct expr *e;
     switch (tok.type) {
       // case ID: {
         // if (type_headers.contains(TO_STD_SV(tok.str)) || 
@@ -45,7 +46,8 @@ static void parse_block(struct context *ctx,
       // } break;
 
       case INTLIT: case FLOATLIT: case ID: case CHARLIT:
-        parse_expr(ctx, ";");
+        e = parse_expr(ctx, ";");
+        ctx->lexer->get_tok_and_expect(CHARLIT, ';');
         break;
       
       case END_OF_FILE:

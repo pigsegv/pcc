@@ -419,7 +419,9 @@ static bool isbinop(enum operators op) {
     case OP_PREINC: case OP_POSTINC: case OP_PREDEC: case OP_POSTDEC:
     case OP_SUBSCRIPT: case OP_CLOSE_SQR: 
     case OP_FUNCALL:
-    case OP_OPEN_PAREN: case OP_CLOSE_PAREN: case OP_TERN: case OP_ARY:
+    case OP_OPEN_PAREN: case OP_CLOSE_PAREN: 
+    case OP_TERN: case OP_ARY: case OP_TERNARY:
+    case OP_CAST:
       return false;
 
     default:
@@ -433,6 +435,7 @@ static bool isunop(enum operators op) {
     case OP_NEGATE: case OP_NOT: case OP_SIZEOF: 
     case OP_PREINC: case OP_POSTINC: case OP_PREDEC: case OP_POSTDEC:
     case OP_SUBSCRIPT: case OP_FUNCALL:
+    case OP_CAST:
       return true;
 
     default:
@@ -487,7 +490,7 @@ static std::pair<struct expr **, uint64_t> parse_args(struct context *ctx) {
   return { args, args_vec.size() };
 }
 
-int64_t get_next_op(const std::vector<struct expr *> &output) {
+static int64_t get_next_op(const std::vector<struct expr *> &output) {
   for (uint64_t i = 0; i < output.size(); i++) {
     if (output[i]->type == EXPR_OP)
       return i;
@@ -497,10 +500,6 @@ int64_t get_next_op(const std::vector<struct expr *> &output) {
 }
 
 struct expr *parse_expr(struct context *ctx, const char *term) {
-  assert(0 && "TODO: Validate expressions");
-
-  struct expr *expr = nullptr;
-
   std::vector<struct expr *> op_stack;
   std::vector<struct expr *> output_stack;
 
@@ -702,6 +701,14 @@ Unary:
               .type = TYPE_STR,
               .lit_str = tok.str,
             };
+
+          if (prev.type == DQSTRING) {
+            output_stack.push_back(
+              new (ctx->arena->alloc(sizeof(struct expr))) (struct expr) {
+                .type = EXPR_OP,
+                .op = OP_CONCAT,
+              });
+          }
           break;
 
         case SQSTRING:
@@ -731,9 +738,53 @@ Unary:
   ctx->lexer->backtrack(&tok);
   assert(op_stack.empty());
 
-  while (output_stack.size()) {
-    int64_t index = get_next_op(output_stack);
+  if (output_stack.empty()) {
+    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                  "Expected expression\n");
   }
 
-  return expr;
+  if (output_stack.size() == 1) {
+    return output_stack[0];
+  }
+
+  while (output_stack.size() > 1) {
+    int64_t i = get_next_op(output_stack);
+
+    auto &op_expr = output_stack[i];
+
+    if (isbinop(op_expr->op)) {
+      assert(i >= 2);
+      
+      op_expr->type = EXPR_BINARY;
+      op_expr->binary.left = output_stack[i - 2];
+      op_expr->binary.right = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 2, 
+                         output_stack.begin() + i);
+
+    } else if (isunop(op_expr->op)) {
+      assert(i >= 1);
+
+      op_expr->type = EXPR_UNARY;
+      op_expr->unary.operand = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 1);
+
+    } else {
+      assert(op_expr->op == OP_TERNARY);
+      assert(i >= 3);
+
+      op_expr->type = EXPR_TERNARY;
+      op_expr->ternary.condition = output_stack[i - 3];
+      op_expr->ternary.succ = output_stack[i - 2];
+      op_expr->ternary.fail = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 3, 
+                         output_stack.begin() + i);
+    }
+  }
+
+  assert(output_stack.size() == 1);
+
+  return output_stack[0];
 }

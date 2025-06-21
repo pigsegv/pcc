@@ -80,6 +80,8 @@ enum operators {
   OP_TERNARY,
   OP_TERN,    // ?
   OP_ARY,     // :
+
+  OP_CONCAT, 
 };
 
 
