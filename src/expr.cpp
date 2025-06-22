@@ -443,6 +443,19 @@ static bool isunop(enum operators op) {
   }
 }
 
+static bool isprefix(enum operators op) {
+  switch(op) {
+    case OP_UNARY_PLUS: case OP_UNARY_MINUS: case OP_REF: case OP_DEREF:
+    case OP_NEGATE: case OP_NOT: case OP_SIZEOF: 
+    case OP_PREINC: case OP_PREDEC: 
+    case OP_CAST:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
 static void pop_op_stack(std::vector<struct expr *> &op_stack, 
                          std::vector<struct expr *> &output_stack,
                          enum operators op) {
@@ -499,9 +512,32 @@ static int64_t get_next_op(const std::vector<struct expr *> &output) {
   return -1;
 }
 
+static bool expected_expr(struct expr *e) {
+  if (e->type != EXPR_OP) return true;
+  if (e->op == OP_OPEN_PAREN) return true;
+  if (isunop(e->op) && isprefix(e->op)) return true;
+
+  return false;
+}
+
+static bool expected_op(struct expr *e) {
+  if (e->type != EXPR_OP) return false;
+  if (e->op == OP_CLOSE_PAREN || e->op == OP_CLOSE_SQR || e->op == OP_TERN ||
+      e->op == OP_ARY) {
+    return true;
+  }
+
+  if (isbinop(e->op)) return true;
+  if (isunop(e->op) && !isprefix(e->op)) return true;
+
+  return false;
+}
+
 struct expr *parse_expr(struct context *ctx, const char *term) {
   std::vector<struct expr *> op_stack;
   std::vector<struct expr *> output_stack;
+
+  bool (*expected)(struct expr *) = [](struct expr *) { return true; };
 
   struct token prev = { .type = NONE };
   struct token tok = ctx->lexer->get_tok();
@@ -510,6 +546,11 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
       if (std::strchr(term, ';') == NULL) {
         EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
                     "Unexpected token ';'\n");
+      }
+
+      if (expected == expected_expr) {
+          EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                      "Unexpected token\n");
       }
 
       pop_op_stack(op_stack, output_stack, OP_STACK_CLEAR); 
@@ -546,11 +587,18 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
             .op = op,
           };
 
+        if (!expected(op_expr)) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                         "Unexpected token\n");
+        }
+
         if (op == OP_COMMA && op_stack.empty() && std::strchr(term, ',')) {
           break;
         }
 
         op_stack.push_back(op_expr);
+
+        expected = expected_expr;
 
       } else if (isunop(op)) {
 Unary:
@@ -596,9 +644,21 @@ Unary:
         } else {
           op_expr->op = op;
         }
+
+        if (!expected(op_expr)) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                         "Unexpected token\n");
+        }
         
         pop_op_stack(op_stack, output_stack, op_expr->op);
         op_stack.push_back(op_expr);
+
+        if (isprefix(op_expr->op)) {
+          expected = expected_expr;
+
+        } else {
+          expected = expected_op;
+        }
 
       } else if (op == OP_CLOSE_SQR || op == OP_CLOSE_PAREN || 
                  op == OP_ARY) {
@@ -639,6 +699,12 @@ Unary:
           break;
         }
 
+        if (struct expr e = { .type = EXPR_OP, .op = op };
+            !expected(&e)) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                        "Unexpected token\n");
+        }
+
         if (op == OP_ARY) {
           assert(op_stack.back()->op == OP_TERN);
           op_stack.pop_back();
@@ -650,12 +716,15 @@ Unary:
             };
           op_stack.push_back(op_ternary);
 
+          expected = expected_expr;
+
         } else {
           op_stack.pop_back();
+          expected = expected_op;
         }
 
       } else {
-        // '(', '[', '?'
+        // '(', '?'
         assert(op == OP_OPEN_PAREN || op == OP_TERN);
 
         {
@@ -676,7 +745,13 @@ Unary:
             .op = op,
           };
 
+        if (!expected(op_expr)) {
+            EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                         "Unexpected token\n");
+        }
+
         op_stack.push_back(op_expr);
+        expected = expected_expr;
       }
 
     } else if (islit(&tok)) {
@@ -724,7 +799,25 @@ Unary:
           assert(0 && "Unreachable");
       }
 
+      if (!expected(val)) {
+          EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                        "Unexpected token\n");
+      }
+
       output_stack.push_back(val);
+
+      if (tok.type == DQSTRING) {
+        expected = [](struct expr *e) {
+          if (e->type == EXPR_SIMPLE_LIT && e->value->type == TYPE_STR) {
+            return true;
+          }
+
+          return expected_op(e);
+        };
+
+      } else {
+        expected = expected_op;
+      }
 
     } else {
       EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
