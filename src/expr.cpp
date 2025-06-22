@@ -479,11 +479,13 @@ static void pop_op_stack(std::vector<struct expr *> &op_stack,
 
 static std::pair<struct expr **, uint64_t> parse_args(struct context *ctx) {
   std::vector<struct expr *> args_vec;
-  struct token tok = ctx->lexer->get_tok();
+  struct token tok = { };
   for (;;) {
     if (tok.type == CHARLIT && tok.charlit == ')') {
       break;
     }
+
+    tok = ctx->lexer->peek();
 
     args_vec.push_back(parse_expr(ctx, ",)"));
     tok = ctx->lexer->get_tok();
@@ -531,6 +533,59 @@ static bool expected_op(struct expr *e) {
   if (isunop(e->op) && !isprefix(e->op)) return true;
 
   return false;
+}
+
+static struct expr *generate_tree(const struct context *ctx, 
+                                  std::vector<struct expr *> &output_stack,
+                                  const struct token &tok) {
+  if (output_stack.empty()) {
+    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                  "Expected expression\n");
+  }
+
+  if (output_stack.size() == 1) {
+    return output_stack[0];
+  }
+
+  while (output_stack.size() > 1) {
+    int64_t i = get_next_op(output_stack);
+
+    auto &op_expr = output_stack[i];
+
+    if (isbinop(op_expr->op)) {
+      assert(i >= 2);
+      
+      op_expr->type = EXPR_BINARY;
+      op_expr->binary.left = output_stack[i - 2];
+      op_expr->binary.right = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 2, 
+                         output_stack.begin() + i);
+
+    } else if (isunop(op_expr->op)) {
+      assert(i >= 1);
+
+      op_expr->type = EXPR_UNARY;
+      op_expr->unary.operand = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 1);
+
+    } else {
+      assert(op_expr->op == OP_TERNARY);
+      assert(i >= 3);
+
+      op_expr->type = EXPR_TERNARY;
+      op_expr->ternary.condition = output_stack[i - 3];
+      op_expr->ternary.succ = output_stack[i - 2];
+      op_expr->ternary.fail = output_stack[i - 1];
+
+      output_stack.erase(output_stack.begin() + i - 3, 
+                         output_stack.begin() + i);
+    }
+  }
+
+  assert(output_stack.size() == 1);
+  return output_stack[0];
 }
 
 struct expr *parse_expr(struct context *ctx, const char *term) {
@@ -831,53 +886,5 @@ Unary:
   ctx->lexer->backtrack(&tok);
   assert(op_stack.empty());
 
-  if (output_stack.empty()) {
-    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
-                  "Expected expression\n");
-  }
-
-  if (output_stack.size() == 1) {
-    return output_stack[0];
-  }
-
-  while (output_stack.size() > 1) {
-    int64_t i = get_next_op(output_stack);
-
-    auto &op_expr = output_stack[i];
-
-    if (isbinop(op_expr->op)) {
-      assert(i >= 2);
-      
-      op_expr->type = EXPR_BINARY;
-      op_expr->binary.left = output_stack[i - 2];
-      op_expr->binary.right = output_stack[i - 1];
-
-      output_stack.erase(output_stack.begin() + i - 2, 
-                         output_stack.begin() + i);
-
-    } else if (isunop(op_expr->op)) {
-      assert(i >= 1);
-
-      op_expr->type = EXPR_UNARY;
-      op_expr->unary.operand = output_stack[i - 1];
-
-      output_stack.erase(output_stack.begin() + i - 1);
-
-    } else {
-      assert(op_expr->op == OP_TERNARY);
-      assert(i >= 3);
-
-      op_expr->type = EXPR_TERNARY;
-      op_expr->ternary.condition = output_stack[i - 3];
-      op_expr->ternary.succ = output_stack[i - 2];
-      op_expr->ternary.fail = output_stack[i - 1];
-
-      output_stack.erase(output_stack.begin() + i - 3, 
-                         output_stack.begin() + i);
-    }
-  }
-
-  assert(output_stack.size() == 1);
-
-  return output_stack[0];
+  return generate_tree(ctx, output_stack, tok);
 }
