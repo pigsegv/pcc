@@ -47,6 +47,10 @@ static void parse_block(struct context *ctx,
 
       case INTLIT: case FLOATLIT: case ID: case CHARLIT:
         e = parse_expr(ctx, ";");
+        if (e == nullptr) {
+          EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
+                      "Expected expression\n");
+        }
         ctx->lexer->get_tok_and_expect(CHARLIT, ';');
         break;
       

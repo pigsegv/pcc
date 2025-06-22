@@ -198,180 +198,6 @@ static int get_prec(enum operators op) {
   }
 }
 
-static enum operators get_op(const struct token *tok, 
-                             const struct token *prev) {
-  switch(tok->type) {
-    case ID:
-      assert(std::strcmp(tok->str.view, "sizeof") == 0);
-      return OP_SIZEOF;
-
-    case EQ:
-      return OP_EQ;
-    case NOTEQ:
-      return OP_NOTEQ;
-    case LESSEQ:
-      return OP_LESSEQ;
-    case GREATEREQ:
-      return OP_GREATEREQ;
-    case ANDAND:
-      return OP_ANDAND;
-    case OROR:
-      return OP_OROR;
-    case SHL:
-      return OP_SHL;
-    case SHR:
-      return OP_SHR;
-
-    case PLUSPLUS: {
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_POSTINC;
-
-      } else {
-        return OP_PREINC;
-      }
-    }
-    
-    case MINUSMINUS: {
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_POSTDEC;
-
-      } else {
-        return OP_PREDEC;
-      }
-    }
-
-    case PLUSEQ:
-      return OP_PLUSEQ;
-    case MINUSEQ:
-      return OP_MINUSEQ;
-    case MULEQ:
-      return OP_MULEQ;
-    case DIVEQ:
-      return OP_DIVEQ;
-    case MODEQ:
-      return OP_MODEQ;
-    case ANDEQ:
-      return OP_ANDEQ;
-    case OREQ:
-      return OP_OREQ;
-    case XOREQ:
-      return OP_XOREQ;
-    case ARROW:
-      return OP_ARROW;
-    case SHLEQ: 
-      return OP_SHLEQ;
-    case SHREQ:
-      return OP_SHREQ;
-
-    case CHARLIT:
-      goto Charlit;
-
-    default:
-      return OP_NONE;
-  }
-
-Charlit:
-  switch (tok->charlit) {
-    case '+':
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_PLUS;
-
-      } else {
-        return OP_UNARY_PLUS;
-      }
-
-    case '-':
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_MINUS;
-
-      } else {
-        return OP_UNARY_MINUS;
-      }
-
-    case '*':
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_MUL;
-
-      } else {
-        return OP_DEREF;
-      }
-
-    case '/':
-      return OP_DIV;
-    case '%':
-      return OP_MOD;
-
-    case '|':
-      return OP_OR;
-    case '&':
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_AND;
-
-      } else {
-        return OP_REF;
-      }
-    case '^':
-      return OP_XOR;
-    case '~':
-      return OP_NEGATE;
-
-    case '!':
-      return OP_NOT;
-
-    case '[':
-      return OP_SUBSCRIPT;
-    case ']':
-      return OP_CLOSE_SQR;
-
-    case '(':
-      if ((!isop(prev) && islit(prev)) || 
-          (prev->type == CHARLIT && (prev->charlit == ')' ||
-          prev->charlit == ']'))) {
-        return OP_FUNCALL;
-
-      } else {
-        return OP_OPEN_PAREN;
-      }
-
-    case ')':
-      return OP_CLOSE_PAREN;
-
-    case ',':
-      return OP_COMMA;
-
-    case '<':
-      return OP_LESS;
-    case '>':
-      return OP_GREATER;
-
-    case '=':
-      return OP_ASSIGN;
-
-    case '.':
-      return OP_DOT;
-
-    case '?':
-      return OP_TERN;
-    case ':':
-      return OP_ARY;
-
-    default:
-      return OP_NONE;
-  }
-}
-
 static enum op_assocs get_assoc(enum operators op) {
   switch (op) {
     case OP_POSTINC: case OP_POSTDEC: 
@@ -456,6 +282,176 @@ static bool isprefix(enum operators op) {
   }
 }
 
+static enum operators get_op(const struct token *tok, 
+                             const struct expr *prev) {
+  // OP_CLOSE_SQR always gets converted to OP_SUBSCRIPT
+  auto is_after_expr = [prev](void) {
+    if (prev->type == EXPR_NONE) return false;
+    if (prev->type != EXPR_OP) return true;
+    if (prev->op == OP_CLOSE_PAREN) return true;
+    if (isunop(prev->op) && !isprefix(prev->op)) return true;
+
+    return false;
+  };
+
+  switch(tok->type) {
+    case ID:
+      assert(std::strcmp(tok->str.view, "sizeof") == 0);
+      return OP_SIZEOF;
+
+    case EQ:
+      return OP_EQ;
+    case NOTEQ:
+      return OP_NOTEQ;
+    case LESSEQ:
+      return OP_LESSEQ;
+    case GREATEREQ:
+      return OP_GREATEREQ;
+    case ANDAND:
+      return OP_ANDAND;
+    case OROR:
+      return OP_OROR;
+    case SHL:
+      return OP_SHL;
+    case SHR:
+      return OP_SHR;
+
+    case PLUSPLUS: {
+      if (is_after_expr()) {
+        return OP_POSTINC;
+
+      } else {
+        return OP_PREINC;
+      }
+    }
+    
+    case MINUSMINUS: {
+      if (is_after_expr()) {
+        return OP_POSTDEC;
+
+      } else {
+        return OP_PREDEC;
+      }
+    }
+
+    case PLUSEQ:
+      return OP_PLUSEQ;
+    case MINUSEQ:
+      return OP_MINUSEQ;
+    case MULEQ:
+      return OP_MULEQ;
+    case DIVEQ:
+      return OP_DIVEQ;
+    case MODEQ:
+      return OP_MODEQ;
+    case ANDEQ:
+      return OP_ANDEQ;
+    case OREQ:
+      return OP_OREQ;
+    case XOREQ:
+      return OP_XOREQ;
+    case ARROW:
+      return OP_ARROW;
+    case SHLEQ: 
+      return OP_SHLEQ;
+    case SHREQ:
+      return OP_SHREQ;
+
+    case CHARLIT:
+      goto Charlit;
+
+    default:
+      return OP_NONE;
+  }
+
+Charlit:
+  switch (tok->charlit) {
+    case '+':
+      if (is_after_expr()) {
+        return OP_PLUS;
+
+      } else {
+        return OP_UNARY_PLUS;
+      }
+
+    case '-':
+      if (is_after_expr()) {
+        return OP_MINUS;
+
+      } else {
+        return OP_UNARY_MINUS;
+      }
+
+    case '*':
+      if (is_after_expr()) {
+        return OP_MUL;
+
+      } else {
+        return OP_DEREF;
+      }
+
+    case '/':
+      return OP_DIV;
+    case '%':
+      return OP_MOD;
+
+    case '|':
+      return OP_OR;
+    case '&':
+      if (is_after_expr()) {
+        return OP_AND;
+
+      } else {
+        return OP_REF;
+      }
+    case '^':
+      return OP_XOR;
+    case '~':
+      return OP_NEGATE;
+
+    case '!':
+      return OP_NOT;
+
+    case '[':
+      return OP_SUBSCRIPT;
+    case ']':
+      return OP_CLOSE_SQR;
+
+    case '(':
+      if (is_after_expr()) {
+        return OP_FUNCALL;
+
+      } else {
+        return OP_OPEN_PAREN;
+      }
+
+    case ')':
+      return OP_CLOSE_PAREN;
+
+    case ',':
+      return OP_COMMA;
+
+    case '<':
+      return OP_LESS;
+    case '>':
+      return OP_GREATER;
+
+    case '=':
+      return OP_ASSIGN;
+
+    case '.':
+      return OP_DOT;
+
+    case '?':
+      return OP_TERN;
+    case ':':
+      return OP_ARY;
+
+    default:
+      return OP_NONE;
+  }
+}
+
 static void pop_op_stack(std::vector<struct expr *> &op_stack, 
                          std::vector<struct expr *> &output_stack,
                          enum operators op) {
@@ -488,12 +484,15 @@ static std::pair<struct expr **, uint64_t> parse_args(struct context *ctx) {
     tok = ctx->lexer->peek();
 
     args_vec.push_back(parse_expr(ctx, ",)"));
+
     tok = ctx->lexer->get_tok();
     if (tok.type != CHARLIT || (tok.charlit != ',' && tok.charlit != ')')) {
       EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
                    "unexpected token: %d\n", tok.type);
     }
   }
+
+  ctx->lexer->backtrack(&tok);
 
   struct expr **args = new (ctx->arena->alloc(args_vec.size() * sizeof(*args))) 
       struct expr *[args_vec.size()];
@@ -532,6 +531,7 @@ static bool expected_op(struct expr *e) {
   if (isbinop(e->op)) return true;
   if (isunop(e->op) && !isprefix(e->op)) return true;
 
+
   return false;
 }
 
@@ -539,8 +539,7 @@ static struct expr *generate_tree(const struct context *ctx,
                                   std::vector<struct expr *> &output_stack,
                                   const struct token &tok) {
   if (output_stack.empty()) {
-    EXIT_AND_ERR(ctx->filepath, ctx->src, tok.location, 
-                  "Expected expression\n");
+    return nullptr;
   }
 
   if (output_stack.size() == 1) {
@@ -594,7 +593,7 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
 
   bool (*expected)(struct expr *) = [](struct expr *) { return true; };
 
-  struct token prev = { .type = NONE };
+  struct expr prev = { .type = EXPR_NONE };
   struct token tok = ctx->lexer->get_tok();
   for (;;) {
     if (tok.type == CHARLIT && tok.charlit == ';') {
@@ -652,6 +651,7 @@ struct expr *parse_expr(struct context *ctx, const char *term) {
         }
 
         op_stack.push_back(op_expr);
+        prev = *op_expr;
 
         expected = expected_expr;
 
@@ -674,10 +674,14 @@ Unary:
                    op_expr->unary.ctx->func.args_count) = 
             parse_args(ctx);
 
+          ctx->lexer->get_tok_and_expect(CHARLIT, ')');
+
         } else if (op == OP_SUBSCRIPT) {
           op_expr->op = OP_SUBSCRIPT;
           op_expr->unary.ctx = parse_expr(ctx, "]");
+
           ctx->lexer->get_tok_and_expect(CHARLIT, ']');
+
 
         } else if (op == OP_OPEN_PAREN) {
           op_expr->op = OP_CAST;
@@ -694,6 +698,7 @@ Unary:
 
           op_expr->unary.ctx->cast_type = 
             std::get<0>(parse_type_expr(ctx, base_type, nullptr));
+
           ctx->lexer->get_tok_and_expect(CHARLIT, ')');
 
         } else {
@@ -707,6 +712,7 @@ Unary:
         
         pop_op_stack(op_stack, output_stack, op_expr->op);
         op_stack.push_back(op_expr);
+        prev = *op_expr;
 
         if (isprefix(op_expr->op)) {
           expected = expected_expr;
@@ -770,12 +776,18 @@ Unary:
               .op = OP_TERNARY,
             };
           op_stack.push_back(op_ternary);
+          prev = *op_ternary;
 
           expected = expected_expr;
 
         } else {
           op_stack.pop_back();
           expected = expected_op;
+
+          static expr tmp;
+          tmp.type = EXPR_OP;
+          tmp.op = op;
+          prev = expr { .type = EXPR_OP, .op = op };
         }
 
       } else {
@@ -806,6 +818,7 @@ Unary:
         }
 
         op_stack.push_back(op_expr);
+        prev = *op_expr;
         expected = expected_expr;
       }
 
@@ -832,13 +845,6 @@ Unary:
               .lit_str = tok.str,
             };
 
-          if (prev.type == DQSTRING) {
-            output_stack.push_back(
-              new (ctx->arena->alloc(sizeof(struct expr))) (struct expr) {
-                .type = EXPR_OP,
-                .op = OP_CONCAT,
-              });
-          }
           break;
 
         case SQSTRING:
@@ -860,6 +866,15 @@ Unary:
       }
 
       output_stack.push_back(val);
+      prev = *val;
+
+      if (prev.type == EXPR_SIMPLE_LIT && prev.value->type == TYPE_STR) {
+        output_stack.push_back(
+          new (ctx->arena->alloc(sizeof(struct expr))) (struct expr) {
+            .type = EXPR_OP,
+            .op = OP_CONCAT,
+          });
+      }
 
       if (tok.type == DQSTRING) {
         expected = [](struct expr *e) {
@@ -879,7 +894,6 @@ Unary:
                    "unexpected token: %d\n", tok.type);
     }
 
-    prev = tok;
     tok = ctx->lexer->get_tok();
   }
 
