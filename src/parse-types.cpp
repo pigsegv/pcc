@@ -2,6 +2,7 @@
 #include "types.hpp"
 #include "string_view.hpp"
 #include "context.hpp"
+#include "expr.hpp"
 
 #include <signal.h>
 #include <unistd.h>
@@ -424,8 +425,31 @@ Post:
 
       } break;
 
-      case '[':
-        assert(0 && "TODO: Implement support for arrays");
+      case '[': {
+        *post_end = (struct type_spec) {
+          .type = TYPE_ARRAY,
+          .array = { },
+        };
+
+        if (ctx->lexer->peek().type != CHARLIT || 
+            ctx->lexer->peek().charlit != ']') {
+          post_end->array.size = parse_expr(ctx, "]");
+        }
+
+        ctx->lexer->get_tok_and_expect(CHARLIT, ']');
+
+        prev_post_end = post_end;
+
+        arena_save = ctx->arena->save();
+        post_end->array.type = 
+          new (ctx->arena->alloc(sizeof(*post_end->array.type))) 
+            (struct type_spec) {
+              .type = TYPE_NONE,
+            };
+
+        post_end = post_end->array.type;
+
+      } break;
 
       case ';':
         break;

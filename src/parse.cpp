@@ -292,7 +292,11 @@ static void parse_block(struct context *ctx,
         }
       } break;
 
-      case INTLIT: case FLOATLIT: case CHARLIT:
+      // case INTLIT: case FLOATLIT: case CHARLIT:
+      
+      case END_OF_FILE:
+        std::exit(0);
+      default:
 Parse_expr:
         e = parse_expr(ctx, ";");
         if (e == nullptr) {
@@ -303,11 +307,6 @@ Parse_expr:
         print_expr(e);
         printf("\n");
         break;
-      
-      case END_OF_FILE:
-        std::exit(0);
-      default:
-        ctx->lexer->get_tok();
     }
 
     last_arena_save = ctx->arena->save();

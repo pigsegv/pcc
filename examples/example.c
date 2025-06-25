@@ -5,7 +5,8 @@
 
 ((int)hi + 2 * 5 ? 1 : 3);
 // 
-float **(*foo)(int (*)(int (*(*lol)(void)), float *plol(int *(int a))));
+float **(*foo[10 + 3 << 8])(int (*[10])(int (*(*lol)(void)), float *plol(int *(int a))));
+
 // int main(void) {
   // int long a;
 // 

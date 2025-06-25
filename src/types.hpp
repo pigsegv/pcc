@@ -92,7 +92,7 @@ struct pointer {
 
 struct array {
   struct type_spec *type;
-  int64_t size; // -1 if not known
+  struct expr *size; // This is incorrect. the expression should be folded into a literal.
 };
 
 struct bitfield {
@@ -157,5 +157,6 @@ static const cstr_umap<uint32_t> type_headers = {
   TO_MAP("register", TYPE_NONE),
   TO_MAP("extern", TYPE_NONE),
 };
+
 
 #endif // PCC_TYPES_H
