@@ -866,8 +866,6 @@ Unary:
       }
 
       output_stack.push_back(val);
-      prev = *val;
-
       if (prev.type == EXPR_SIMPLE_LIT && prev.value->type == TYPE_STR) {
         output_stack.push_back(
           new (ctx->arena->alloc(sizeof(struct expr))) (struct expr) {
@@ -875,6 +873,9 @@ Unary:
             .op = OP_CONCAT,
           });
       }
+
+      prev = *val;
+
 
       if (tok.type == DQSTRING) {
         expected = [](struct expr *e) {
